@@ -660,6 +660,15 @@ install_layer5_memory() {
     success "Hooks configured"
   fi
 
+  # Seed initial knowledge graph entities
+  local py; py="$(_python_cmd)"
+  if [[ -n "$py" && -f "$CLAUDE_HOME/scripts/init-memory.py" ]]; then
+    info "Seeding knowledge graph with initial entities..."
+    "$py" "$CLAUDE_HOME/scripts/init-memory.py" 2>/dev/null \
+      && success "Knowledge graph seeded" \
+      || warn "init-memory.py returned non-zero (may already be seeded)"
+  fi
+
   success "Layer 5 complete"
   MANIFEST_LAYERS+=("memory")
 }

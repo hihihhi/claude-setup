@@ -597,6 +597,23 @@ with open(file, 'w', encoding='utf-8') as f:
     }
 
     Remove-Item $tmpPy -ErrorAction SilentlyContinue
+
+    # Seed initial knowledge graph entities
+    $initMemory = Join-Path $ClaudeHome 'scripts\init-memory.py'
+    if (Test-Path $initMemory) {
+        $python2 = Get-Command python3 -ErrorAction SilentlyContinue
+        if (-not $python2) { $python2 = Get-Command python -ErrorAction SilentlyContinue }
+        if ($python2) {
+            Write-Info 'Seeding knowledge graph with initial entities...'
+            try {
+                & $python2.Source $initMemory
+                Write-Ok 'Knowledge graph seeded'
+            } catch {
+                Write-Warn "init-memory.py failed (may already be seeded): $_"
+            }
+        }
+    }
+
     $script:ManifestLayers.Add('memory')
 }
 
