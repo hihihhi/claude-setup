@@ -22,7 +22,7 @@
 | Testing | `webapp-testing`, `tdd` |
 | Python | `modern-python` |
 | Research / trends | `deep-research`, `last30days`, `market-news-analyst`, `karpathy-guidelines` |
-| Quant / trading | `backtest-expert`, `canslim-screener`, `vcp-screener`, `technical-analyst` |
+| Quant / trading | `quant-research`, `backtest-expert`, `canslim-screener`, `vcp-screener`, `technical-analyst` |
 | Deployment | `deploy-to-vercel`, `netlify-cli-and-deploy` |
 | Cloudflare | `wrangler`, `durable-objects`, `workers-best-practices` |
 | Docker / infra | `docker-patterns`, `devcontainer-setup` |
