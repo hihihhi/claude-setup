@@ -37,22 +37,27 @@
 - Once clarified, proceed without re-asking the same thing.
 
 ## Memory System
-Three-tier: global -> project files -> cross-project knowledge graph.
+Three-tier: global preferences -> project-specific context -> cross-project knowledge.
 
 - **Tier 1 (Always)**: This file + `~/.claude/rules/*.md`
-- **Tier 2 (Per-project)**: `~/.claude/projects/<proj>/memory/*.md` — TF-IDF injected on every prompt (top 3 matches)
-- **Tier 3 (Cross-project)**: MCP memory server — entity/relation graph, query with `search_nodes` or `read_graph`
+- **Tier 2 Global (Default save)**: `~/.claude/projects/C--Users-heiwa/memory/` — **preferences, feedback, workflow rules; save here by default**
+- **Tier 2 Project**: `~/.claude/projects/<proj>/memory/` — only for info tied to ONE specific project
+- **Tier 3 (Deep knowledge)**: MCP memory server — domain knowledge, research vault, cross-project entities
 
-**What to save in Tier 2 (file memory):**
-- Decisions not visible in code ("chose X over Y because Z")
-- Hard constraints ("tests hit real DB, no mocks")
-- External references ("bugs in Linear project IGSL")
-- Preferences that would otherwise need re-explaining each session
+**Tier 2 Global** (default — applies everywhere):
+- User preferences and feedback corrections
+- Workflow rules ("always use agent teams", "loop until criterion met")
+- Coding standards that apply across all projects
+- Anything you'd want to remember regardless of which repo you're in
 
-**What to save in Tier 3 (knowledge graph):**
-- Cross-project entities: technologies, people, systems used in multiple projects
-- Architectural decisions that span repos
-- Failure patterns seen across projects ("X approach always causes Y problem")
+**Tier 2 Project** (only when truly project-specific):
+- A bug unique to that codebase
+- A one-off deadline or stakeholder constraint
+- A repo-specific architectural decision
+
+**Tier 3 — Deep knowledge** (MCP knowledge graph):
+- Domain knowledge (quant research vault, papers, strategies)
+- Cross-project entities: technologies, patterns seen across multiple repos
 - Relationships: "Project A uses same auth pattern as Project B"
 
 **Never save**: code patterns derivable from reading the repo, git history, debugging recipes.
