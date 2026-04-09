@@ -312,11 +312,92 @@ install_dependencies() {
           ;;
       esac
     else
-      info "Obsidian skipped"
+      info "Obsidian skipped — RAG/vault MCP will not be configured"
     fi
   else
     success "obsidian: found"
   fi
+
+  # ── Obsidian vault + MCP server ─────────────────────────────────────────────
+  # After Obsidian is installed, configure mcp-obsidian in ~/.claude.json so
+  # Claude Code can read/write/search notes directly via tool calls.
+  # Works independently of whether the app was just installed or already existed.
+  _setup_obsidian_mcp
+}
+
+# ── Obsidian MCP setup ────────────────────────────────────────────────────────
+# Prompts for vault path, creates it if needed, adds mcp-obsidian to ~/.claude.json.
+_setup_obsidian_mcp() {
+  local claude_json
+  if [[ "$OS" == "windows" && -n "${USERPROFILE:-}" ]]; then
+    claude_json="$USERPROFILE/.claude.json"
+  else
+    claude_json="$HOME/.claude.json"
+  fi
+
+  # Skip if already configured
+  if [[ -f "$claude_json" ]] && grep -q '"obsidian"' "$claude_json" 2>/dev/null; then
+    info "Obsidian MCP already configured — skipping"
+    return 0
+  fi
+
+  # Default vault path per OS
+  local default_vault
+  case "$OS" in
+    windows) default_vault="${USERPROFILE}\\Documents\\ClaudeVault" ;;
+    macos)   default_vault="$HOME/Documents/ClaudeVault" ;;
+    linux)   default_vault="$HOME/ClaudeVault" ;;
+  esac
+
+  echo ""
+  info "Obsidian vault setup"
+  echo "  Default path: $default_vault"
+  read -rp "  Vault path [press Enter for default]: " vault_input
+  local vault_path="${vault_input:-$default_vault}"
+
+  # Create vault directory if it doesn't exist
+  mkdir -p "$vault_path" 2>/dev/null || true
+
+  # Add mcp-obsidian to ~/.claude.json via Python
+  local py; py="$(_python_cmd)"
+  if [[ -z "$py" ]]; then
+    warn "Python not found — Obsidian MCP not configured"
+    return 0
+  fi
+
+  "$py" - <<PYEOF
+import json, os
+from pathlib import Path
+
+claude_json = Path(r"""$claude_json""")
+vault_path  = r"""$vault_path"""
+is_windows  = (os.name == "nt")
+
+if claude_json.exists():
+    cfg = json.loads(claude_json.read_text(encoding="utf-8"))
+else:
+    cfg = {}
+
+cfg.setdefault("mcpServers", {})
+if "obsidian" not in cfg["mcpServers"]:
+    if is_windows:
+        cfg["mcpServers"]["obsidian"] = {
+            "type": "stdio",
+            "command": "cmd",
+            "args": ["/c", "npx", "-y", "mcp-obsidian"],
+            "env": {"VAULT_PATH": vault_path}
+        }
+    else:
+        cfg["mcpServers"]["obsidian"] = {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["-y", "mcp-obsidian"],
+            "env": {"VAULT_PATH": vault_path}
+        }
+    claude_json.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    print(f"Obsidian MCP configured → {vault_path}")
+PYEOF
+  success "Obsidian MCP server configured (restart Claude Code to activate)"
 }
 
 # ── Role Selection ────────────────────────────────────────────────────────────

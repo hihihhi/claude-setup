@@ -196,11 +196,81 @@ function Install-Dependencies {
                 Write-Warn "winget failed: $_. Install from https://obsidian.md/download"
             }
         } else {
-            Write-Info 'Obsidian skipped'
+            Write-Info 'Obsidian skipped -- RAG/vault MCP will not be configured'
         }
     } else {
         Write-Ok 'Obsidian found'
     }
+
+    # Configure Obsidian MCP server regardless of whether app was just installed
+    Set-ObsidianMCP
+}
+
+# ── Obsidian MCP setup ────────────────────────────────────────────────
+# Prompts for vault path, creates it if needed, adds mcp-obsidian to ~/.claude.json
+function Set-ObsidianMCP {
+    $claudeJson = Join-Path $env:USERPROFILE '.claude.json'
+
+    # Skip if already configured
+    if (Test-Path $claudeJson) {
+        $raw = Get-Content -Raw $claudeJson
+        if ($raw -match '"obsidian"') {
+            Write-Info 'Obsidian MCP already configured -- skipping'
+            return
+        }
+    }
+
+    $defaultVault = Join-Path $env:USERPROFILE 'Documents\ClaudeVault'
+    Write-Host ''
+    Write-Info "Obsidian vault setup"
+    Write-Info "  Default path: $defaultVault"
+    $vaultInput = Read-Host '  Vault path [press Enter for default]'
+    $vaultPath = if ([string]::IsNullOrWhiteSpace($vaultInput)) { $defaultVault } else { $vaultInput }
+
+    # Create vault directory if missing
+    if (-not (Test-Path $vaultPath)) {
+        New-Item -ItemType Directory -Path $vaultPath -Force | Out-Null
+        Write-Ok "Created vault directory: $vaultPath"
+    }
+
+    # Add mcp-obsidian to ~/.claude.json via Python
+    $python = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $python) { $python = Get-Command python -ErrorAction SilentlyContinue }
+    if (-not $python) {
+        Write-Warn 'Python not found -- Obsidian MCP not configured'
+        return
+    }
+
+    $pyScript = @"
+import json
+from pathlib import Path
+
+cj = Path(r'$($claudeJson.Replace('\','\\'))')
+vault = r'$($vaultPath.Replace('\','\\'))'
+
+cfg = json.loads(cj.read_text(encoding='utf-8')) if cj.exists() else {}
+cfg.setdefault('mcpServers', {})
+if 'obsidian' not in cfg['mcpServers']:
+    cfg['mcpServers']['obsidian'] = {
+        'type': 'stdio',
+        'command': 'cmd',
+        'args': ['/c', 'npx', '-y', 'mcp-obsidian'],
+        'env': {'VAULT_PATH': vault}
+    }
+    cj.write_text(json.dumps(cfg, indent=2), encoding='utf-8')
+    print(f'Obsidian MCP configured -> {vault}')
+else:
+    print('already present')
+"@
+    $tmpPy = Join-Path ([System.IO.Path]::GetTempPath()) 'obsidian_mcp.py'
+    $pyScript | Set-Content -Path $tmpPy -Encoding UTF8
+    try {
+        & $python.Source $tmpPy
+        Write-Ok 'Obsidian MCP server configured (restart Claude Code to activate)'
+    } catch {
+        Write-Warn "Could not configure Obsidian MCP: $_"
+    }
+    Remove-Item $tmpPy -ErrorAction SilentlyContinue
 }
 
 # ── Role Selection ────────────────────────────────────────────────────
