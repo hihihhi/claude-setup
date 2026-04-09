@@ -68,6 +68,8 @@ The installer will:
 4. Generate attribution and manifest
 5. Run a smoke test
 
+**After installing:** read [`docs/usage-guide.md`](./docs/usage-guide.md) — it covers what to say to trigger each skill, how to activate role overlays, how memory injection works, and the quick-reference card for daily use.
+
 ## Role Selection
 
 | # | Role | Skills Focus | Agents |
