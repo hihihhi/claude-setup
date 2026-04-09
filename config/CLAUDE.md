@@ -30,21 +30,27 @@
 | Docs | `docx`, `pdf`, `pptx`, `xlsx` |
 
 ## Memory System
-Two-tier: global + per-project file search.
+Three-tier: global -> project files -> cross-project knowledge graph.
 
 - **Tier 1 (Always)**: This file + `~/.claude/rules/*.md`
 - **Tier 2 (Per-project)**: `~/.claude/projects/<proj>/memory/*.md` — TF-IDF injected on every prompt (top 3 matches)
+- **Tier 3 (Cross-project)**: MCP memory server — entity/relation graph, query with `search_nodes` or `read_graph`
 
-**What to save in Tier 2:**
-- Decisions that aren't visible in code ("we chose X over Y because Z")
-- Constraints ("tests must hit real DB, no mocks")
+**What to save in Tier 2 (file memory):**
+- Decisions not visible in code ("chose X over Y because Z")
+- Hard constraints ("tests hit real DB, no mocks")
 - External references ("bugs in Linear project IGSL")
 - Preferences that would otherwise need re-explaining each session
-- Merge freezes, deadlines, team policies
 
-**Never save**: code patterns, architecture derivable from reading the repo, git history, debugging recipes.
+**What to save in Tier 3 (knowledge graph):**
+- Cross-project entities: technologies, people, systems used in multiple projects
+- Architectural decisions that span repos
+- Failure patterns seen across projects ("X approach always causes Y problem")
+- Relationships: "Project A uses same auth pattern as Project B"
 
-**Recall**: automatic on every prompt. Explicitly: "what do you remember about this project?"
+**Never save**: code patterns derivable from reading the repo, git history, debugging recipes.
+
+**Recall**: Tier 2 is automatic. Tier 3: `search_nodes("topic")` or `read_graph()`.
 
 ## Multi-Agent Workflow
 
