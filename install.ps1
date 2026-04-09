@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  IGSL Claude Setup Installer (PowerShell — Windows native)
+  Claude Code Setup Installer (PowerShell — Windows native)
 
 .DESCRIPTION
   Installs a curated Claude Code environment with role-based layers.
@@ -415,7 +415,7 @@ function New-Attribution {
 
     $attrPath = Join-Path $ClaudeHome 'ATTRIBUTION.md'
     $attrContent = @'
-# IGSL Claude Setup -- Attribution
+# Claude Code Setup -- Attribution
 
 This environment bundles the following open-source components:
 
@@ -471,7 +471,7 @@ function Write-Manifest {
     Write-Header 'Writing manifest'
 
     $manifest = [PSCustomObject]@{
-        installer   = 'igsl-claude-setup'
+        installer   = 'claude-setup'
         version     = '1.0.0'
         installedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
         os          = 'windows'
@@ -480,7 +480,7 @@ function Write-Manifest {
         layers      = @($ManifestLayers)
     }
 
-    $manifestPath = Join-Path $ClaudeHome 'igsl-manifest.json'
+    $manifestPath = Join-Path $ClaudeHome 'claude-setup-manifest.json'
     $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path $manifestPath -Encoding UTF8
     Write-Ok "Manifest written to $manifestPath"
 }
@@ -511,7 +511,7 @@ function Invoke-SmokeTest {
     Test-Item 'skills/ directory'       (Join-Path $ClaudeHome 'skills')
     Test-Item 'scripts/ directory'      (Join-Path $ClaudeHome 'scripts')
     Test-Item 'ATTRIBUTION.md'         (Join-Path $ClaudeHome 'ATTRIBUTION.md')
-    Test-Item 'igsl-manifest.json'     (Join-Path $ClaudeHome 'igsl-manifest.json')
+    Test-Item 'claude-setup-manifest.json'     (Join-Path $ClaudeHome 'claude-setup-manifest.json')
     Test-Item 'licenses/ directory'    (Join-Path $ClaudeHome 'licenses')
     Test-Item 'settings.json'          (Join-Path $ClaudeHome 'settings.json')
 
@@ -532,7 +532,7 @@ function Invoke-SmokeTest {
 function Main {
     Write-Host ''
     Write-Host '+==============================================+' -ForegroundColor Cyan
-    Write-Host '|        IGSL Claude Setup Installer           |' -ForegroundColor Cyan
+    Write-Host '|        Claude Code Setup Installer           |' -ForegroundColor Cyan
     Write-Host '+==============================================+' -ForegroundColor Cyan
     Write-Host ''
 
@@ -543,7 +543,7 @@ function Main {
         New-Item -ItemType Directory -Path $ClaudeHome -Force | Out-Null
     }
 
-    $script:TempDir = Join-Path ([System.IO.Path]::GetTempPath()) "igsl-$(Get-Random)"
+    $script:TempDir = Join-Path ([System.IO.Path]::GetTempPath()) "claude-setup-$(Get-Random)"
     New-Item -ItemType Directory -Path $script:TempDir -Force | Out-Null
     Write-Info "Temp directory: $script:TempDir"
 

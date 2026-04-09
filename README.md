@@ -1,227 +1,217 @@
-# igsl-claude-setup
+# claude-setup
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-harness-8A2BE2)](https://docs.anthropic.com/en/docs/claude-code)
-[![Teams](https://img.shields.io/badge/Teams-multi--agent-green)](./teams/templates/)
+[![Platform](https://img.shields.io/badge/Platform-Win%20%7C%20Mac%20%7C%20Linux-lightgrey)]()
 
-One-click Claude Code harness for teams -- research + dev pipelines, multi-agent teams, persistent memory, skill auto-discovery.
+**One-click Claude Code harness for teams.** Installs a fully optimized Claude Code environment with research + dev pipelines, multi-agent teams, persistent memory, and skill auto-discovery.
 
 ---
+
+## What This Does
+
+Running `./install.sh` (or `./install.ps1` on Windows) sets up your `~/.claude/` directory with:
+
+- **214+ skills** auto-loaded by context (181 via ECC plugin + 14 superpowers + 19 mattpocock)
+- **150 agents** across 10 domains (engineering, design, marketing, sales, product, research, etc.)
+- **5 hooks** for security, memory injection, state tracking, and session management
+- **6 role overlays** so devs, researchers, designers, PMs, DevOps, and data scientists each get relevant tools
+- **3 team templates** for multi-agent coordination (research, dev, full-pipeline)
+- **3-tier memory system** that persists across sessions and projects
 
 ## Architecture
 
 ```
-Layer 6: Team Templates          teams/templates/*.md
-          Multi-agent coordination configs (research, dev, full-pipeline)
-
-Layer 5: Memory System           3-tier: global -> project -> knowledge graph
-          Persistent context across sessions and projects
-
-Layer 4: Skills & Agents         ~/.claude/rules/*.md, agents/*.md
-          200+ skills auto-loaded by context detection
-
-Layer 3: Phase Routing           CLAUDE.md routing table
-          Trigger -> action mapping (build, ship, test, review, research)
-
-Layer 2: Role Overlays           config/roles/*.md
-          developer, researcher, designer, product, devops, data-scientist
-
-Layer 1: Global Config           config/CLAUDE.md
-          Identity, security rules, code quality, toolchain defaults
-
-Layer 0: Install Script          scripts/install.sh
-          One-click setup, role selection, dependency resolution
++-----------------------------------------------------------------------+
+|                    UNIFIED CLAUDE CODE HARNESS                         |
++-----------------------------------------------------------------------+
+|                                                                       |
+|  Layer 0: Base           everything-claude-code (ECC)                 |
+|                          181 skills + 47 agents + hooks + rules       |
+|                                                                       |
+|  Layer 1: Methodology    superpowers (14 skills: TDD, verification)   |
+|                          mattpocock/skills (19: PRD-to-plan, grill-me)|
+|                                                                       |
+|  Layer 2: Research       last30days-skill (trend research)            |
+|                          K-Dense scientific (134 domain skills)        |
+|                          deer-flow (heavy research offloading)         |
+|                                                                       |
+|  Layer 3: Role Agents    agency-agents (150 agents, 10 domains)       |
+|                                                                       |
+|  Layer 4: Observability  claude-hud (context budget + status)         |
+|                                                                       |
+|  Layer 5: Memory         3-tier: global + project + knowledge graph   |
+|                          Dynamic injection via TF-IDF keyword search  |
+|                                                                       |
+|  Layer 6: Custom         CLAUDE.md + role overlays + team templates   |
+|                          + security hooks + helper scripts            |
++-----------------------------------------------------------------------+
 ```
 
 ## Quick Start
 
-**One-liner install:**
-
 ```bash
-curl -fsSL https://raw.githubusercontent.com/igsl/igsl-claude-setup/main/scripts/install.sh | bash
+git clone https://github.com/hihihhi/claude-setup.git
+cd claude-setup
+./install.sh        # Mac/Linux/Git Bash
+# or
+./install.ps1       # Windows PowerShell
 ```
 
-**Manual install:**
-
-```bash
-git clone https://github.com/igsl/igsl-claude-setup.git
-cd igsl-claude-setup
-bash scripts/install.sh
-```
-
-The installer will prompt you to select a role and configure your environment.
+The installer will:
+1. Detect your OS
+2. Prompt you to select role(s)
+3. Install each layer in order
+4. Generate attribution and manifest
+5. Run a smoke test
 
 ## Role Selection
 
-| Role | Focus | Auto-loaded Skills | Best For |
-|------|-------|--------------------|----------|
-| `developer` | Full-stack implementation | next, react, shadcn-ui, tdd, code-review | Building features, fixing bugs |
-| `researcher` | Investigation & analysis | deep-research, last30days, market-news | Market research, trend analysis |
-| `designer` | UI/UX and frontend | impeccable suite, shadcn-ui, frontend-design | Design systems, component work |
-| `product` | Planning & coordination | plan, office-hours, retro | Roadmap, specs, team coordination |
-| `devops` | Infrastructure & deploy | docker-patterns, deploy-to-vercel, wrangler | CI/CD, cloud, containerization |
-| `data-scientist` | ML & data analysis | pytorch-patterns, modern-python, backtest | Models, analysis, quantitative work |
+| # | Role | Skills Focus | Agents |
+|---|------|-------------|--------|
+| 1 | Full-Stack Developer | TDD, code-review, security-review, build-error-resolver | Architect, Implementer, Tester, Reviewer |
+| 2 | Backend Developer | API design, database, security, testing | Same as above |
+| 3 | Frontend / Designer | Impeccable suite, shadcn-ui, frontend-patterns, WCAG AA | Designer, Frontend Reviewer |
+| 4 | Researcher / Analyst | deep-research, last30days, market analysis, scientific | Researcher, Analyst, Reviewer |
+| 5 | Product Manager | PRD-to-plan, grill-me, office-hours, feature-forge | Product Manager, Researcher |
+| 6 | Data Scientist / ML | PyTorch, eval harness, HuggingFace, MLflow | ML Engineer, Data Analyst |
+| 7 | DevOps / SRE | Docker, Terraform, CI/CD, monitoring, deploy | Infra Architect, SRE |
+| 8 | All | Everything above | All agents |
 
-Roles are additive overlays on the base config. Switch at any time with `load role <name>`.
+Roles are additive -- pick multiple (e.g., `1,4` for Full-Stack + Researcher).
 
 ## What Gets Installed
 
-| Layer | Component | Source | Description |
-|-------|-----------|--------|-------------|
-| Config | Global CLAUDE.md | This repo | Base harness config: identity, security, routing |
-| Config | Role overlays | This repo | Role-specific skill priorities and phase routing |
-| Skills | everything-claude-code | [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) | 100+ workflow skills (tdd, ship, review, plan, etc.) |
-| Skills | superpowers | [obra/superpowers](https://github.com/obra/superpowers) | Enhanced agent capabilities and tool patterns |
-| Skills | mattpocock/skills | [mattpocock/skills](https://github.com/mattpocock/skills) | TypeScript-focused skills |
-| Skills | agency-agents | [msitarzewski/agency-agents](https://github.com/msitarzewski/agency-agents) | Agent coordination patterns |
-| Skills | impeccable | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | UI/UX review suite (critique, arrange, polish, typeset) |
-| Skills | claude-hud | [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud) | Session monitoring and status display |
-| Skills | last30days-skill | [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill) | Recent trend analysis and news |
-| Skills | claude-scientific-skills | [K-Dense-AI/claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) | Scientific research and analysis |
-| Orchestration | deer-flow | [bytedance/deer-flow](https://github.com/bytedance/deer-flow) | Multi-agent workflow orchestration |
-| Teams | Team templates | This repo | Pre-built multi-agent team configs |
+### Skills & Agents
 
-## Configuration
+| Component | Count | Source | License |
+|-----------|-------|--------|---------|
+| [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | 181 skills, 47 agents | Affaan Mustafa | MIT |
+| [superpowers](https://github.com/obra/superpowers) | 14 skills | Jesse Vincent | MIT |
+| [mattpocock/skills](https://github.com/mattpocock/skills) | 19 skills | Matt Pocock | MIT |
+| [agency-agents](https://github.com/msitarzewski/agency-agents) | 150 agents | Maciej Sitarzewski | MIT |
+| [impeccable](https://github.com/pbakaus/impeccable) | 21 skills | Paul Bakaus | Apache 2.0 |
+| [claude-hud](https://github.com/jarrodwatts/claude-hud) | Status line | Jarrod Watts | MIT |
+| [last30days-skill](https://github.com/mvanhorn/last30days-skill) | 1 skill | mvanhorn | MIT |
+| [claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) | 134 skills | K-Dense AI | MIT |
+| [deer-flow](https://github.com/bytedance/deer-flow) | Research agent | ByteDance | MIT |
 
-### Customizing CLAUDE.md
+### Helper Scripts
 
-The base config lives at `config/CLAUDE.md`. After installation, it is symlinked or
-copied to `~/.claude/CLAUDE.md`. To customize:
+| Script | Hook | Purpose |
+|--------|------|---------|
+| `memory-search.py` | UserPromptSubmit | TF-IDF keyword search across all project memories, injects top 3 matches |
+| `bash-guard.py` | PreToolUse (Bash) | Blocks `rm -rf /`, force push to main, `sudo rm`, pipe-to-shell, DROP TABLE, fork bombs |
+| `scan-secrets.py` | PreToolUse (Write/Edit) | Detects API keys (sk-, AKIA, ghp_, glpat-), private keys, hardcoded passwords |
+| `update-state.py` | Stop | Auto-updates `.claude/state.md` with timestamp and session summary |
+| `health-check.sh` | Manual | Verifies all components installed, reports green/yellow/red per component |
+| `sync-shared-memory.sh` | Manual/cron | Syncs team knowledge base via git |
 
-1. Edit `config/CLAUDE.md` in this repo.
-2. Re-run `bash scripts/install.sh` to apply changes.
+### Hook System
 
-Key sections to customize:
-- **Skill Auto-Discovery table**: Add rows for your project's tech stack.
-- **Phase Routing table**: Map your team's commands to workflow phases.
-- **Security rules**: Add project-specific security constraints.
-- **Persistent Corrections**: Record mistakes to never repeat.
-
-### Adding Skills
-
-Skills are markdown files in `~/.claude/rules/` or loaded on demand via the routing
-table.
-
-```bash
-# Install a community skill
-claude skill install <skill-name>
-
-# Create a custom skill
-claude skill create my-skill
-```
-
-### Modifying Hooks
-
-Hooks are configured in `~/.claude/settings.json`. They run bash commands before or
-after specific Claude Code events.
-
-```json
-{
-  "hooks": {
-    "pre-commit": "bash scripts/pre-commit.sh",
-    "post-session": "bash scripts/save-state.sh"
-  }
-}
-```
-
-## Team Templates
-
-Pre-built multi-agent team configurations in `teams/templates/`:
-
-### Research Team
-**File**: [`teams/templates/research-team.md`](./teams/templates/research-team.md)
-
-Opus lead + 4 Sonnet agents for deep investigation. Includes anti-sycophancy
-reviewer gate, source citation requirements, and structured output format.
-
-### Dev Team
-**File**: [`teams/templates/dev-team.md`](./teams/templates/dev-team.md)
-
-Opus architect + 4 Sonnet agents for parallel feature implementation. Includes
-worktree isolation, TDD enforcement, 400-line limits, and Generator!=Evaluator
-code review.
-
-### Full Pipeline
-**File**: [`teams/templates/full-pipeline.md`](./teams/templates/full-pipeline.md)
-
-Opus director orchestrating Research, Dev, and Quality pods. Full lifecycle from
-investigation through shipped code with mandatory phase gates.
-
-### Creating Custom Teams
-
-Copy any template and modify agent definitions, model assignments, and coordination
-rules to fit your workflow:
-
-```bash
-cp teams/templates/dev-team.md teams/templates/my-team.md
-# Edit agent roles, skills, and constraints
-```
+Hooks use the current Claude Code response format:
+- **Allow**: output nothing (empty stdout = proceed)
+- **Deny**: output `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "..."}}`
+- **Exit code 2**: hard block without JSON
 
 ## Memory System
 
-Three-tier persistent memory across sessions and projects.
+Three-tier persistent memory across sessions and projects:
 
-### Tier 1: Global (Always Loaded)
-- `~/.claude/CLAUDE.md` -- base config, always in context
-- `~/.claude/rules/*.md` -- rule files, always in context
+| Tier | Scope | Location | Loaded |
+|------|-------|----------|--------|
+| 1 | Global | `~/.claude/CLAUDE.md` + `rules/*.md` | Always (< 5K tokens) |
+| 2 | Per-project | `~/.claude/projects/<proj>/memory/*.md` | On demand via TF-IDF hook |
+| 3 | Cross-project | MCP memory server (knowledge graph) | On query |
 
-### Tier 2: Per-Project (Auto-loaded)
-- `~/.claude/projects/<project>/memory/MEMORY.md` -- project-specific context
-- Topic-specific files in the same directory
-- `.claude/state.md` in each project root -- current task state, session results
+The `UserPromptSubmit` hook runs `memory-search.py` on every message -- it extracts keywords, searches all project memory files using TF-IDF scoring, and injects the top 3 most relevant files into context. Runs in under 1 second across ~100 files.
 
-### Tier 3: Knowledge Graph (Cross-Project)
-- MCP memory server stores entities and relations in `knowledge-graph.json`
-- Searchable across all projects
-- Use `mcp__memory__create_entities` to save, `mcp__memory__search_nodes` to recall
+## Multi-Agent Team Templates
 
-### Memory Flow
+### Research Team (`teams/templates/research-team.md`)
+- **Opus lead** coordinates and synthesizes findings
+- **4 Sonnet agents**: Researcher x2 (web + deep dive), Analyst, Reviewer (fact-check gate)
+- Anti-sycophancy mechanisms, source citation requirements
+
+### Dev Team (`teams/templates/dev-team.md`)
+- **Opus architect** designs and plans
+- **4 Sonnet agents**: Implementer x2 (worktree isolation), Tester (TDD), Reviewer (security)
+- Generator != Evaluator: the agent that writes code never reviews it
+- Max 400 lines per agent session
+
+### Full Pipeline (`teams/templates/full-pipeline.md`)
+- **Opus director** orchestrates Research -> Dev -> Quality
+- **3 pods, 6 agents**: Research (researcher + analyst), Dev (implementer + tester), Quality (reviewer + security)
+- 5 mandatory phase gates with structured handoff documents
+
+## Security
+
+All scripts use Python stdlib only (no external dependencies).
+
+**bash-guard.py** blocks:
+- `rm -rf /`, `rm -rf ~`, `rm -rf $HOME`
+- `git push --force` to main/master
+- `sudo rm`, `sudo dd`
+- `curl | sh` (pipe to shell)
+- `DROP TABLE`, `DROP DATABASE`
+- `chmod 777`, fork bombs
+
+**scan-secrets.py** detects:
+- API keys: `sk-`, `pk_live_`, `AKIA`, `ghp_`, `gho_`, `glpat-`, `xoxb-`, `xoxp-`
+- Private keys (RSA, EC, OPENSSH headers)
+- Hardcoded passwords/secrets/tokens in assignments
+- Database connection strings with embedded credentials
+- Skips `.md` files and obvious fake/test values
+
+## File Structure
 
 ```
-User says something worth remembering
-        |
-        v
-Save to Tier 2 (project memory)
-        |
-        v
-Save to Tier 3 (knowledge graph)
-        |
-        v
-Append to LEARNINGS.md if research-related
+claude-setup/
+  install.sh              Bash installer (Mac/Linux/Git Bash)
+  install.ps1             PowerShell installer (Windows)
+  README.md
+  LICENSE                 MIT
+  ATTRIBUTION.md          All bundled components with licenses
+  config/
+    CLAUDE.md             Global navigation index (103 lines)
+    roles/
+      developer.md        Dev role overlay
+      researcher.md       Research role overlay
+      designer.md         Design role overlay
+      product.md          PM role overlay
+      devops.md           DevOps/SRE overlay
+      data-scientist.md   ML/DS overlay
+  scripts/
+    memory-search.py      Dynamic memory injection
+    bash-guard.py         Dangerous command blocker
+    scan-secrets.py       Secret detection
+    update-state.py       Auto state updater
+    health-check.sh       Installation health check
+    sync-shared-memory.sh Team knowledge sync
+  teams/templates/
+    research-team.md      Opus + 4 Sonnet research team
+    dev-team.md           Opus + 4 Sonnet dev team
+    full-pipeline.md      3-pod full pipeline
+  docs/
+    generate_report.py    PDF report generator
+    Claude_Code_Harness_Report.pdf
 ```
 
 ## Attribution
 
-This project bundles open-source components under MIT and Apache 2.0 licenses.
-See [ATTRIBUTION.md](./ATTRIBUTION.md) for the full list with copyright notices
-and repository links.
+This project bundles open-source components. See [ATTRIBUTION.md](./ATTRIBUTION.md) for the complete list.
 
-Components **not bundled** due to license restrictions:
-- `academic-research-skills` (CC BY-NC 4.0 -- non-commercial)
-- `karpathy-skills` (no license file)
+**Not bundled** (license restrictions):
+- [academic-research-skills](https://github.com/Imbad0202/academic-research-skills) -- CC BY-NC 4.0 (non-commercial only)
+- andrej-karpathy-skills -- No license (patterns extracted, files not copied)
 
 ## Contributing
 
-1. Fork the repo.
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Make changes. Follow conventional commits (`feat:`, `fix:`, `chore:`, `docs:`).
-4. Ensure no secrets, tokens, or API keys are committed.
-5. Submit a pull request with a clear description of what changed and why.
-
-### Adding a New Skill Source
-
-1. Verify the source repo has an MIT, Apache 2.0, or similarly permissive license.
-2. Add it to the install script in `scripts/install.sh`.
-3. Add an entry to `ATTRIBUTION.md`.
-4. Add routing entries to `config/CLAUDE.md` if the skill should auto-load.
-5. Test the full install flow.
-
-### Adding a New Team Template
-
-1. Create a new file in `teams/templates/`.
-2. Follow the structure of existing templates (team structure, agent definitions,
-   coordination rules, phase flow, usage, when to use).
-3. Document the template in this README under Team Templates.
+1. Fork and create a feature branch
+2. Follow conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
+3. No secrets or API keys in commits
+4. Add attribution for any new bundled component
+5. Submit PR with clear description
 
 ## License
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ──────────────────────────────────────────────────────────────────────
-# igsl-claude-setup installer
+# claude-setup installer
 # Installs a curated Claude Code environment with role-based layers.
 # ──────────────────────────────────────────────────────────────────────
 
@@ -422,7 +422,7 @@ generate_attribution() {
   header "Generating attribution"
 
   cat > "$CLAUDE_HOME/ATTRIBUTION.md" <<'ATTR_EOF'
-# IGSL Claude Setup — Attribution
+# Claude Code Setup — Attribution
 
 This environment bundles the following open-source components:
 
@@ -487,9 +487,9 @@ write_manifest() {
   local ts
   ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%S")"
 
-  cat > "$CLAUDE_HOME/igsl-manifest.json" <<MANIFEST_EOF
+  cat > "$CLAUDE_HOME/claude-setup-manifest.json" <<MANIFEST_EOF
 {
-  "installer": "igsl-claude-setup",
+  "installer": "claude-setup",
   "version": "1.0.0",
   "installedAt": "$ts",
   "os": "$OS",
@@ -498,7 +498,7 @@ write_manifest() {
   "layers": $layers_json
 }
 MANIFEST_EOF
-  success "Manifest written to $CLAUDE_HOME/igsl-manifest.json"
+  success "Manifest written to $CLAUDE_HOME/claude-setup-manifest.json"
 }
 
 # ── Smoke Test ────────────────────────────────────────────────────────
@@ -524,7 +524,7 @@ run_smoke_test() {
   check_item "skills/ directory"           "$CLAUDE_HOME/skills"
   check_item "scripts/ directory"          "$CLAUDE_HOME/scripts"
   check_item "ATTRIBUTION.md"             "$CLAUDE_HOME/ATTRIBUTION.md"
-  check_item "igsl-manifest.json"         "$CLAUDE_HOME/igsl-manifest.json"
+  check_item "claude-setup-manifest.json"         "$CLAUDE_HOME/claude-setup-manifest.json"
   check_item "licenses/ directory"        "$CLAUDE_HOME/licenses"
   check_item "settings.json"             "$CLAUDE_HOME/settings.json"
 
@@ -545,7 +545,7 @@ main() {
   echo ""
   printf "${BOLD}${CYAN}"
   echo "╔══════════════════════════════════════════════╗"
-  echo "║        IGSL Claude Setup Installer           ║"
+  echo "║        Claude Code Setup Installer           ║"
   echo "╚══════════════════════════════════════════════╝"
   printf "${NC}\n"
 
@@ -555,7 +555,7 @@ main() {
   set_claude_home
   mkdir -p "$CLAUDE_HOME"
 
-  TEMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t igsl)"
+  TEMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t claude-setup)"
   info "Temp directory: $TEMP_DIR"
 
   check_prerequisites
