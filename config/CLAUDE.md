@@ -21,7 +21,7 @@
 | Git / PR | `commit`, `create-pr`, `code-review` |
 | Testing | `webapp-testing`, `tdd` |
 | Python | `modern-python` |
-| Research / trends | `deep-research`, `last30days`, `market-news-analyst` |
+| Research / trends | `deep-research`, `last30days`, `market-news-analyst`, `karpathy-guidelines` |
 | Quant / trading | `backtest-expert`, `canslim-screener`, `vcp-screener`, `technical-analyst` |
 | Deployment | `deploy-to-vercel`, `netlify-cli-and-deploy` |
 | Cloudflare | `wrangler`, `durable-objects`, `workers-best-practices` |
@@ -30,14 +30,21 @@
 | Docs | `docx`, `pdf`, `pptx`, `xlsx` |
 
 ## Memory System
-Three-tier: global -> project -> knowledge graph.
+Two-tier: global + per-project file search.
 
 - **Tier 1 (Always)**: This file + `~/.claude/rules/*.md`
-- **Tier 2 (Per-project)**: `~/.claude/projects/<proj>/memory/MEMORY.md` -> topic files
-- **Tier 3 (Cross-project)**: MCP memory server (`knowledge-graph.json`)
+- **Tier 2 (Per-project)**: `~/.claude/projects/<proj>/memory/*.md` — TF-IDF injected on every prompt (top 3 matches)
 
-**Save**: user prefs, feedback, project context, references.
-**Recall**: when relevant to current task or user asks.
+**What to save in Tier 2:**
+- Decisions that aren't visible in code ("we chose X over Y because Z")
+- Constraints ("tests must hit real DB, no mocks")
+- External references ("bugs in Linear project IGSL")
+- Preferences that would otherwise need re-explaining each session
+- Merge freezes, deadlines, team policies
+
+**Never save**: code patterns, architecture derivable from reading the repo, git history, debugging recipes.
+
+**Recall**: automatic on every prompt. Explicitly: "what do you remember about this project?"
 
 ## Multi-Agent Workflow
 
