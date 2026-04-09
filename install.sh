@@ -334,7 +334,7 @@ install_layer3_agents() {
 # in ~/.claude/settings.json. The command below reads context data from stdin
 # (passed by Claude Code) and outputs a formatted, color-coded status string.
 #
-# Output example:  heiwa:~/project main* ctx:73% claude-sonnet-4-6 14:30 todos:2
+# Output example:  user:~/project main* ctx:73% claude-sonnet-4-6 14:30 todos:2
 install_layer4_hud() {
   header "Layer 4: HUD status line"
 
