@@ -21,6 +21,9 @@ Running `./install.sh` (or `./install.ps1` on Windows) sets up your `~/.claude/`
 
 ## Architecture
 
+> **Interactive diagrams:** [docs/diagrams/architecture.md](./docs/diagrams/architecture.md)
+> — Layer stack · Hook execution flow · 3-tier memory system (Mermaid, renders on GitHub)
+
 ```
 +-----------------------------------------------------------------------+
 |                    UNIFIED CLAUDE CODE HARNESS                         |
