@@ -29,6 +29,13 @@
 | ML / AI | `pytorch-patterns`, `fal-ai-media`, `cost-aware-llm-pipeline` |
 | Docs | `docx`, `pdf`, `pptx`, `xlsx` |
 
+## When to Ask (Before Acting)
+- **Ambiguous request** (2+ valid interpretations) → state both, ask which one. Never silently pick one.
+- **Missing critical context** (which file? which function? what exact behavior?) → ask the single most important question. One question, not a list.
+- **Scope unclear** (touches 1 file vs entire system) → state exactly what you'll change and confirm before starting.
+- **Destructive or irreversible** (delete, drop, overwrite, push) → always confirm first.
+- Once clarified, proceed without re-asking the same thing.
+
 ## Memory System
 Three-tier: global -> project files -> cross-project knowledge graph.
 
