@@ -174,13 +174,39 @@ def build_seed_entities() -> list[dict]:
                 "Companion repo for GitHub Copilot configuration",
                 "Repo: https://github.com/hihihhi/copilot-setup",
                 "Zero dependencies — pure file copy, works air-gapped",
-                "Key files: .github/copilot-instructions.md (behavioral contract), "
-                ".github/instructions/*.instructions.md (path-scoped), "
-                ".github/prompts/*.prompt.md (slash commands)",
+                "Key files: .github/copilot-instructions.md (behavioral contract, "
+                "140 lines, offline-first rules embedded), "
+                ".github/instructions/*.instructions.md (8 path-scoped files), "
+                ".github/prompts/*.prompt.md (11 slash commands)",
                 "11 prompts: plan, scaffold, explain, commit, tdd, code-review, "
                 "security-review, debug, refactor, deep-research, prd-to-plan",
                 "Manual install: copy .github/ and .vscode/ into target project",
                 "See MANUAL-INSTALL.md for air-gapped installation guide",
+                "Offline-safe: instructions check package.json before suggesting "
+                "new packages, no external links, conservative syntax rules",
+            ],
+        ),
+
+        # ── Karpathy Guidelines ──────────────────────────────────────────────
+        make_entity(
+            name="Karpathy Guidelines",
+            entity_type="Skill",
+            observations=[
+                "Skill file: ~/.claude/skills/karpathy-guidelines/SKILL.md",
+                "Attribution: patterns from Andrej Karpathy's coding principles "
+                "(forrestchang/andrej-karpathy-skills, MIT license)",
+                "4 principles: Think Before Coding, Simplicity First, "
+                "Surgical Changes, Goal-Driven Execution",
+                "Think Before Coding: state assumptions, ask before guessing, "
+                "present multiple interpretations, push back when warranted",
+                "Simplicity First: no features beyond asked, no abstractions for "
+                "single use, no unnecessary configurability",
+                "Surgical Changes: every changed line traces to request, match "
+                "existing style, don't fix adjacent unrelated issues",
+                "Goal-Driven Execution: transform imperatives to verifiable goals, "
+                "plan with verify step at each stage",
+                "Also embedded in copilot-instructions.md as behavioral contract",
+                "Also referenced in CLAUDE.md skill routing table (Research row)",
             ],
         ),
     ]
@@ -197,6 +223,8 @@ def build_seed_relations() -> list[dict]:
         make_relation("Hook System",  "implements", "Security Hooks"),
         make_relation("Memory System", "uses",      "TF-IDF Memory Hook"),
         make_relation("Claude Code",  "companion-to", "copilot-setup"),
+        make_relation("claude-setup", "includes-skill", "Karpathy Guidelines"),
+        make_relation("copilot-setup", "embeds-principles-from", "Karpathy Guidelines"),
     ]
 
 
@@ -243,8 +271,15 @@ def main() -> None:
         print("Memory already seeded — nothing to add.")
         return
 
-    # Append to file
+    # Append to file — ensure existing content ends with a newline first
+    # (prevents two JSON objects merging onto the same line)
     with entities_file.open("a", encoding="utf-8") as f:
+        if entities_file.stat().st_size > 0:
+            # Check last byte — if not newline, write one before appending
+            with entities_file.open("rb") as rb:
+                rb.seek(-1, 2)
+                if rb.read(1) != b"\n":
+                    f.write("\n")
         for record in new_entities + new_relations:
             f.write(json.dumps(record) + "\n")
 
