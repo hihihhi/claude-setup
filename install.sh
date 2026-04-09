@@ -90,41 +90,232 @@ mcp_npx_prefix() {
   fi
 }
 
-# ── Prerequisite checks ───────────────────────────────────────────────────────
-check_prerequisites() {
-  header "Checking prerequisites"
-  local missing=0
+# ── Dependency installation ───────────────────────────────────────────────────
+# Checks each required/optional tool and offers to install missing ones.
+# Defaults: Y for required tools (Node, Python, jq), N for optional (LaTeX, Obsidian).
+install_dependencies() {
+  header "Installing dependencies"
 
+  # ── Git (hard requirement — no package manager works without it) ──
   if ! command -v git &>/dev/null; then
-    error "git not found. Install from https://git-scm.com"
-    missing=1
+    error "git is required but not found."
+    case "$OS" in
+      windows) error "Install Git from: https://git-scm.com/download/win" ;;
+      macos)   error "Run: brew install git  OR install Xcode Command Line Tools" ;;
+      linux)   error "Run: sudo apt install git  OR  sudo dnf install git" ;;
+    esac
+    exit 1
   else
     success "git: $(git --version)"
   fi
 
+  # ── Node.js ──
   if ! command -v node &>/dev/null; then
-    error "node not found. Install from https://nodejs.org (LTS recommended)"
-    missing=1
+    warn "Node.js not found"
+    read -rp "  Install Node.js LTS now? [Y/n] " yn
+    if [[ "${yn:-Y}" =~ ^[Yy]$ ]]; then
+      case "$OS" in
+        windows)
+          info "Installing Node.js LTS via winget..."
+          winget install OpenJS.NodeJS.LTS \
+            --accept-package-agreements --accept-source-agreements 2>/dev/null \
+            || warn "winget failed — install from https://nodejs.org"
+          ;;
+        macos)
+          if command -v brew &>/dev/null; then
+            brew install node@lts 2>/dev/null || brew install node
+          else
+            warn "Homebrew not found — install from https://nodejs.org"
+          fi
+          ;;
+        linux)
+          if command -v curl &>/dev/null; then
+            info "Installing Node.js LTS via NodeSource..."
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - \
+              && sudo apt-get install -y nodejs 2>/dev/null \
+            || { command -v dnf &>/dev/null && sudo dnf install -y nodejs; } 2>/dev/null \
+            || warn "Auto-install failed — install from https://nodejs.org"
+          else
+            warn "curl not found — install Node.js from https://nodejs.org"
+          fi
+          ;;
+      esac
+    fi
+    if ! command -v node &>/dev/null; then
+      error "Node.js still not found. Install it and re-run."
+      exit 1
+    fi
   else
     success "node: $(node --version)"
   fi
 
+  # npx ships with Node >= 5.2; install separately only if missing
   if ! command -v npx &>/dev/null; then
-    error "npx not found. Run: npm install -g npx"
-    missing=1
+    info "Installing npx..."
+    npm install -g npx 2>/dev/null || warn "Could not install npx"
   else
     success "npx: found"
   fi
 
+  # ── Claude Code CLI ──
+  if ! command -v claude &>/dev/null; then
+    warn "Claude Code CLI not found"
+    read -rp "  Install Claude Code CLI now? [Y/n] " yn
+    if [[ "${yn:-Y}" =~ ^[Yy]$ ]]; then
+      info "Installing @anthropic-ai/claude-code..."
+      npm install -g @anthropic-ai/claude-code \
+        && success "Claude Code CLI installed" \
+        || warn "Install failed — run: npm install -g @anthropic-ai/claude-code"
+    fi
+  else
+    success "claude: $(claude --version 2>/dev/null | head -1 || echo found)"
+  fi
+
+  # ── Python 3 (needed by memory + security hooks) ──
   if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
-    warn "python not found — some JSON merge steps will be skipped"
+    warn "Python not found (required for memory hooks)"
+    read -rp "  Install Python 3 now? [Y/n] " yn
+    if [[ "${yn:-Y}" =~ ^[Yy]$ ]]; then
+      case "$OS" in
+        windows)
+          winget install Python.Python.3 \
+            --accept-package-agreements --accept-source-agreements 2>/dev/null \
+            || warn "winget failed — install from https://python.org"
+          ;;
+        macos)
+          command -v brew &>/dev/null && brew install python3 \
+            || warn "Install from https://python.org"
+          ;;
+        linux)
+          sudo apt-get install -y python3 2>/dev/null \
+          || sudo dnf install -y python3 2>/dev/null \
+          || warn "Install python3 with your package manager"
+          ;;
+      esac
+    fi
   else
     success "python: found"
   fi
 
-  if [[ "$missing" -eq 1 ]]; then
-    error "Missing required tools. Install them and re-run."
-    exit 1
+  # ── uv (recommended Python package manager) ──
+  if ! command -v uv &>/dev/null; then
+    warn "uv not found (recommended Python package manager)"
+    read -rp "  Install uv now? [Y/n] " yn
+    if [[ "${yn:-Y}" =~ ^[Yy]$ ]]; then
+      case "$OS" in
+        windows)
+          winget install astral-sh.uv \
+            --accept-package-agreements --accept-source-agreements 2>/dev/null \
+          || { command -v pip3 &>/dev/null && pip3 install uv; } 2>/dev/null \
+          || warn "Install uv: https://github.com/astral-sh/uv"
+          ;;
+        *)
+          curl -LsSf https://astral.sh/uv/install.sh | sh 2>/dev/null \
+          || { command -v pip3 &>/dev/null && pip3 install uv; } 2>/dev/null \
+          || warn "Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
+          # uv installs to ~/.local/bin — add to PATH for this session
+          [[ -f "$HOME/.local/bin/uv" ]] && export PATH="$HOME/.local/bin:$PATH"
+          ;;
+      esac
+      command -v uv &>/dev/null \
+        && success "uv installed" \
+        || warn "uv not in PATH — restart your shell after installation"
+    fi
+  else
+    success "uv: $(uv --version)"
+  fi
+
+  # ── jq (required by HUD status line) ──
+  if ! command -v jq &>/dev/null; then
+    warn "jq not found (required by HUD status line)"
+    read -rp "  Install jq now? [Y/n] " yn
+    if [[ "${yn:-Y}" =~ ^[Yy]$ ]]; then
+      case "$OS" in
+        windows)
+          winget install stedolan.jq \
+            --accept-package-agreements --accept-source-agreements 2>/dev/null \
+            || warn "Install jq: https://jqlang.github.io/jq/"
+          ;;
+        macos)
+          command -v brew &>/dev/null && brew install jq \
+            || warn "Install jq: brew install jq"
+          ;;
+        linux)
+          sudo apt-get install -y jq 2>/dev/null \
+          || sudo dnf install -y jq 2>/dev/null \
+          || warn "Install jq with your package manager"
+          ;;
+      esac
+      command -v jq &>/dev/null && success "jq installed"
+    fi
+  else
+    success "jq: $(jq --version)"
+  fi
+
+  # ── LaTeX (optional — needed for PDF/docs skills) ──
+  if ! command -v pdflatex &>/dev/null && ! command -v xelatex &>/dev/null; then
+    warn "LaTeX not found (optional — needed for PDF generation skills)"
+    read -rp "  Install LaTeX? (~1-2 GB download) [y/N] " yn
+    if [[ "${yn:-N}" =~ ^[Yy]$ ]]; then
+      case "$OS" in
+        windows)
+          info "Installing MiKTeX via winget..."
+          winget install MiKTeX.MiKTeX \
+            --accept-package-agreements --accept-source-agreements 2>/dev/null \
+            || warn "Install MiKTeX from: https://miktex.org/download"
+          ;;
+        macos)
+          command -v brew &>/dev/null \
+            && brew install --cask mactex \
+            || warn "Install MacTeX: https://tug.org/mactex/"
+          ;;
+        linux)
+          info "Installing texlive-xetex..."
+          sudo apt-get install -y texlive-xetex 2>/dev/null \
+          || sudo dnf install -y texlive-xetex 2>/dev/null \
+          || warn "Run: sudo apt install texlive-xetex"
+          ;;
+      esac
+    else
+      info "LaTeX skipped — /pdf and /docx skills will not work without it"
+    fi
+  else
+    success "LaTeX: found"
+  fi
+
+  # ── Obsidian (optional — knowledge base integration) ──
+  if ! command -v obsidian &>/dev/null; then
+    warn "Obsidian not found (optional — knowledge base integration)"
+    read -rp "  Install Obsidian? [y/N] " yn
+    if [[ "${yn:-N}" =~ ^[Yy]$ ]]; then
+      case "$OS" in
+        windows)
+          winget install Obsidian.Obsidian \
+            --accept-package-agreements --accept-source-agreements 2>/dev/null \
+            || warn "Install Obsidian: https://obsidian.md/download"
+          ;;
+        macos)
+          command -v brew &>/dev/null \
+            && brew install --cask obsidian \
+            || warn "Install Obsidian: https://obsidian.md/download"
+          ;;
+        linux)
+          info "Downloading Obsidian AppImage..."
+          local obsidian_dest="$HOME/.local/bin/obsidian"
+          mkdir -p "$HOME/.local/bin"
+          curl -L \
+            "https://github.com/obsidianmd/obsidian-releases/releases/latest/download/Obsidian.AppImage" \
+            -o "$obsidian_dest" 2>/dev/null \
+            && chmod +x "$obsidian_dest" \
+            && success "Obsidian AppImage installed to $obsidian_dest" \
+            || warn "Install Obsidian: https://obsidian.md/download"
+          ;;
+      esac
+    else
+      info "Obsidian skipped"
+    fi
+  else
+    success "obsidian: found"
   fi
 }
 
@@ -679,7 +870,7 @@ write_manifest() {
   cat > "$CLAUDE_HOME/claude-setup-manifest.json" <<MANIFEST_EOF
 {
   "installer": "claude-setup",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "installedAt": "$ts",
   "os": "$OS",
   "claudeHome": "$CLAUDE_HOME",
@@ -736,7 +927,7 @@ main() {
   echo ""
   printf "${BOLD}${CYAN}"
   echo "╔════════════════════════════════════════════════╗"
-  echo "║     Claude Code Setup Installer  v1.1.0       ║"
+  echo "║     Claude Code Setup Installer  v1.2.0       ║"
   echo "║     https://github.com/hihihhi/claude-setup   ║"
   echo "╚════════════════════════════════════════════════╝"
   printf "${NC}\n"
@@ -750,7 +941,7 @@ main() {
   TEMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t claude-setup)"
   info "Temp dir: $TEMP_DIR"
 
-  check_prerequisites
+  install_dependencies
   select_roles
 
   install_layer0_ecc

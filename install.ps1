@@ -37,35 +37,169 @@ function Set-ClaudeHome {
     Write-Info "CLAUDE_HOME = $script:ClaudeHome"
 }
 
-# ── Prerequisite checks ──────────────────────────────────────────────
-function Test-Prerequisites {
-    Write-Header 'Checking prerequisites'
-    $missing = 0
+# ── Dependency installation ───────────────────────────────────────────
+# Checks each required/optional tool and installs missing ones via winget.
+# Defaults: Y for required tools (Node, Python, jq), N for optional (LaTeX, Obsidian).
+function Install-Dependencies {
+    Write-Header 'Installing Dependencies'
 
+    # ── Git (hard requirement) ──
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Err 'git is not installed'
-        $missing++
+        Write-Err 'git is required but not found. Install from: https://git-scm.com/download/win'
+        exit 1
     } else {
         Write-Ok "git found: $(git --version)"
     }
 
+    # ── Node.js ──
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-        Write-Err 'node is not installed'
-        $missing++
+        Write-Warn 'Node.js not found'
+        $yn = Read-Host '  Install Node.js LTS now? [Y/n]'
+        if ([string]::IsNullOrWhiteSpace($yn) -or $yn -match '^[Yy]') {
+            Write-Info 'Installing Node.js LTS via winget...'
+            try {
+                winget install OpenJS.NodeJS.LTS `
+                    --accept-package-agreements --accept-source-agreements | Out-Null
+                Write-Ok 'Node.js installed'
+            } catch {
+                Write-Warn "winget failed: $_. Install from https://nodejs.org"
+            }
+        }
+        if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+            Write-Err 'Node.js still not found. Install it and re-run.'
+            exit 1
+        }
     } else {
         Write-Ok "node found: $(node --version)"
     }
 
+    # npx ships with Node >= 5.2
     if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
-        Write-Err 'npx is not installed'
-        $missing++
+        Write-Info 'Installing npx...'
+        try { npm install -g npx | Out-Null } catch { Write-Warn "Could not install npx: $_" }
     } else {
         Write-Ok 'npx found'
     }
 
-    if ($missing -gt 0) {
-        Write-Err 'Missing prerequisites. Install them and re-run.'
-        exit 1
+    # ── Claude Code CLI ──
+    if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+        Write-Warn 'Claude Code CLI not found'
+        $yn = Read-Host '  Install Claude Code CLI now? [Y/n]'
+        if ([string]::IsNullOrWhiteSpace($yn) -or $yn -match '^[Yy]') {
+            Write-Info 'Installing @anthropic-ai/claude-code...'
+            try {
+                npm install -g '@anthropic-ai/claude-code'
+                Write-Ok 'Claude Code CLI installed'
+            } catch {
+                Write-Warn "Install failed: $_. Run: npm install -g @anthropic-ai/claude-code"
+            }
+        }
+    } else {
+        Write-Ok 'claude: found'
+    }
+
+    # ── Python 3 (required for memory + security hooks) ──
+    $hasPython = (Get-Command python3 -ErrorAction SilentlyContinue) -or
+                 (Get-Command python  -ErrorAction SilentlyContinue)
+    if (-not $hasPython) {
+        Write-Warn 'Python not found (required for memory hooks)'
+        $yn = Read-Host '  Install Python 3 now? [Y/n]'
+        if ([string]::IsNullOrWhiteSpace($yn) -or $yn -match '^[Yy]') {
+            Write-Info 'Installing Python 3 via winget...'
+            try {
+                winget install Python.Python.3 `
+                    --accept-package-agreements --accept-source-agreements | Out-Null
+                Write-Ok 'Python installed'
+            } catch {
+                Write-Warn "winget failed: $_. Install from https://python.org"
+            }
+        }
+    } else {
+        Write-Ok 'Python found'
+    }
+
+    # ── uv (recommended Python package manager) ──
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Write-Warn 'uv not found (recommended Python package manager)'
+        $yn = Read-Host '  Install uv now? [Y/n]'
+        if ([string]::IsNullOrWhiteSpace($yn) -or $yn -match '^[Yy]') {
+            Write-Info 'Installing uv via winget...'
+            try {
+                winget install astral-sh.uv `
+                    --accept-package-agreements --accept-source-agreements | Out-Null
+                Write-Ok 'uv installed'
+            } catch {
+                Write-Warn "winget failed: $_"
+                try {
+                    pip install uv | Out-Null
+                    Write-Ok 'uv installed via pip'
+                } catch {
+                    Write-Warn "Could not install uv. See https://github.com/astral-sh/uv"
+                }
+            }
+        }
+    } else {
+        Write-Ok "uv found: $(uv --version)"
+    }
+
+    # ── jq (required by HUD status line) ──
+    if (-not (Get-Command jq -ErrorAction SilentlyContinue)) {
+        Write-Warn 'jq not found (required by HUD status line)'
+        $yn = Read-Host '  Install jq now? [Y/n]'
+        if ([string]::IsNullOrWhiteSpace($yn) -or $yn -match '^[Yy]') {
+            Write-Info 'Installing jq via winget...'
+            try {
+                winget install stedolan.jq `
+                    --accept-package-agreements --accept-source-agreements | Out-Null
+                Write-Ok 'jq installed'
+            } catch {
+                Write-Warn "winget failed: $_. Install from https://jqlang.github.io/jq/"
+            }
+        }
+    } else {
+        Write-Ok "jq found: $(jq --version)"
+    }
+
+    # ── LaTeX (optional — needed for PDF/docs skills) ──
+    $hasLatex = (Get-Command pdflatex -ErrorAction SilentlyContinue) -or
+                (Get-Command xelatex  -ErrorAction SilentlyContinue)
+    if (-not $hasLatex) {
+        Write-Warn 'LaTeX not found (optional -- needed for PDF generation skills)'
+        $yn = Read-Host '  Install MiKTeX? (~1-2 GB download) [y/N]'
+        if ($yn -match '^[Yy]') {
+            Write-Info 'Installing MiKTeX via winget...'
+            try {
+                winget install MiKTeX.MiKTeX `
+                    --accept-package-agreements --accept-source-agreements | Out-Null
+                Write-Ok 'MiKTeX installed'
+            } catch {
+                Write-Warn "winget failed: $_. Install from https://miktex.org/download"
+            }
+        } else {
+            Write-Info 'LaTeX skipped -- /pdf and /docx skills will not work without it'
+        }
+    } else {
+        Write-Ok 'LaTeX found'
+    }
+
+    # ── Obsidian (optional — knowledge base integration) ──
+    if (-not (Get-Command obsidian -ErrorAction SilentlyContinue)) {
+        Write-Warn 'Obsidian not found (optional -- knowledge base integration)'
+        $yn = Read-Host '  Install Obsidian? [y/N]'
+        if ($yn -match '^[Yy]') {
+            Write-Info 'Installing Obsidian via winget...'
+            try {
+                winget install Obsidian.Obsidian `
+                    --accept-package-agreements --accept-source-agreements | Out-Null
+                Write-Ok 'Obsidian installed'
+            } catch {
+                Write-Warn "winget failed: $_. Install from https://obsidian.md/download"
+            }
+        } else {
+            Write-Info 'Obsidian skipped'
+        }
+    } else {
+        Write-Ok 'Obsidian found'
     }
 }
 
@@ -281,27 +415,98 @@ function Install-Layer3-Agents {
 }
 
 # ── Layer 4: HUD ──────────────────────────────────────────────────────
+# Writes the statusLine config to settings.json directly (no separate package).
+# The command reads context JSON piped by Claude Code and prints a formatted
+# status string: user:path branch* ctx:% model time [todos:N]
 function Install-Layer4-HUD {
-    Write-Header 'Layer 4: Claude HUD'
+    Write-Header 'Layer 4: HUD status line'
 
-    Write-Info 'Installing claude-hud...'
-    Invoke-NpxSafe -Args @('claude-hud', 'install') `
-                   -Label 'Claude HUD installed'
+    $settingsFile = Join-Path $ClaudeHome 'settings.json'
+    if (-not (Test-Path $settingsFile)) {
+        '{}' | Set-Content -Path $settingsFile -Encoding UTF8
+    }
 
+    $raw = Get-Content -Raw $settingsFile
+    if ($raw -match '"statusLine"') {
+        Write-Info 'statusLine already configured -- skipping'
+        $script:ManifestLayers.Add('hud')
+        return
+    }
+
+    Write-Info 'Writing statusLine config to settings.json...'
+
+    # Use Python to merge statusLine into settings.json (same command as install.sh)
+    $pythonScript = @'
+import json, sys
+file = sys.argv[1]
+with open(file, encoding='utf-8') as f:
+    cfg = json.load(f)
+cmd = (
+    "input=$(cat); user=$(whoami); "
+    "cwd=$(echo \"$input\" | jq -r '.workspace.current_dir' | sed \"s|$HOME|~|g\"); "
+    "model=$(echo \"$input\" | jq -r '.model.display_name'); "
+    "time=$(date +%H:%M); "
+    "remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); "
+    "transcript=$(echo \"$input\" | jq -r '.transcript_path'); "
+    "todo_count=$([ -f \"$transcript\" ] && grep -c '\"type\":\"todo\"' \"$transcript\" 2>/dev/null || echo 0); "
+    "cd \"$(echo \"$input\" | jq -r '.workspace.current_dir')\" 2>/dev/null; "
+    "branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo ''); "
+    "status=''; "
+    "[ -n \"$branch\" ] && { [ -n \"$(git status --porcelain 2>/dev/null)\" ] && status='*'; }; "
+    "B='\\033[38;2;30;102;245m'; G='\\033[38;2;64;160;43m'; Y='\\033[38;2;223;142;29m'; "
+    "M='\\033[38;2;136;57;239m'; C='\\033[38;2;23;146;153m'; R='\\033[0m'; T='\\033[38;2;76;79;105m'; "
+    "printf \"${C}${user}${R}:${B}${cwd}${R}\"; "
+    "[ -n \"$branch\" ] && printf \" ${G}${branch}${Y}${status}${R}\"; "
+    "[ -n \"$remaining\" ] && printf \" ${M}ctx:${remaining}%%${R}\"; "
+    "printf \" ${T}${model}${R} ${Y}${time}${R}\"; "
+    "[ \"$todo_count\" -gt 0 ] && printf \" ${C}todos:${todo_count}${R}\"; echo"
+)
+cfg["statusLine"] = {"type": "command", "command": cmd}
+with open(file, "w", encoding='utf-8') as f:
+    json.dump(cfg, f, indent=2)
+'@
+
+    $tmpPy = Join-Path ([System.IO.Path]::GetTempPath()) 'hud_merge.py'
+    $pythonScript | Set-Content -Path $tmpPy -Encoding UTF8
+
+    $python = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $python) { $python = Get-Command python -ErrorAction SilentlyContinue }
+
+    if ($python) {
+        try {
+            & $python.Source $tmpPy $settingsFile
+            Write-Ok 'HUD status line configured'
+        } catch {
+            Write-Warn "Could not configure HUD: $_"
+        }
+    } else {
+        Write-Warn 'Python not available -- HUD skipped. Re-run after installing Python.'
+    }
+
+    Remove-Item $tmpPy -ErrorAction SilentlyContinue
     Write-Ok 'Layer 4 complete'
     $script:ManifestLayers.Add('hud')
 }
 
 # ── Layer 5: Memory System ────────────────────────────────────────────
+# Installs hook scripts and configures settings.json with:
+#   - MCP memory server (@modelcontextprotocol/server-memory)
+#   - UserPromptSubmit hook (TF-IDF memory injection)
+#   - PreToolUse hooks (bash-guard, scan-secrets)
+#   - Stop hook (update-state)
+#   - SessionStart hook (inject session state)
+#
+# Windows MCP fix: npx is a .cmd batch file on Windows and cannot be spawned
+# directly. All MCP servers use cmd /c npx to route through cmd.exe.
 function Install-Layer5-Memory {
-    Write-Header 'Layer 5: Memory System'
+    Write-Header 'Layer 5: Memory System & Security Hooks'
 
     $scriptsDir = Join-Path $ClaudeHome 'scripts'
     if (-not (Test-Path $scriptsDir)) {
         New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
     }
 
-    # Copy memory scripts from this repo
+    # Copy hook scripts from this repo
     $repoScripts = Join-Path $ScriptDir 'scripts'
     if (Test-Path $repoScripts) {
         $files = Get-ChildItem -Path $repoScripts -File -ErrorAction SilentlyContinue
@@ -315,44 +520,83 @@ function Install-Layer5-Memory {
         Write-Warn 'No scripts/ directory in repo -- skipping script copy'
     }
 
-    # Configure MCP memory server
-    $settingsFile = Join-Path $ClaudeHome 'settings.json'
-    if (Test-Path $settingsFile) {
-        $settingsContent = Get-Content -Raw $settingsFile
-        if ($settingsContent -match '"memory"') {
-            Write-Info 'Memory MCP server already configured in settings.json'
-        } else {
-            Write-Info 'Adding memory MCP server to settings.json...'
-            try {
-                $cfg = $settingsContent | ConvertFrom-Json
-                if (-not (Get-Member -InputObject $cfg -Name 'mcpServers' -MemberType NoteProperty)) {
-                    $cfg | Add-Member -NotePropertyName 'mcpServers' -NotePropertyValue ([PSCustomObject]@{})
-                }
-                $memoryServer = [PSCustomObject]@{
-                    command = 'npx'
-                    args    = @('-y', '@anthropic/mcp-memory')
-                }
-                $cfg.mcpServers | Add-Member -NotePropertyName 'memory' -NotePropertyValue $memoryServer -Force
-                $cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsFile -Encoding UTF8
-                Write-Ok 'Memory MCP server added to settings.json'
-            } catch {
-                Write-Warn "Could not update settings.json: $_"
-            }
-        }
-    } else {
-        Write-Info 'Creating settings.json with memory MCP server...'
-        $newSettings = [PSCustomObject]@{
-            mcpServers = [PSCustomObject]@{
-                memory = [PSCustomObject]@{
-                    command = 'npx'
-                    args    = @('-y', '@anthropic/mcp-memory')
-                }
-            }
-        }
-        $newSettings | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsFile -Encoding UTF8
-        Write-Ok 'settings.json created'
+    # Create memory directory and entities file for MCP server
+    $memoryDir = Join-Path $ClaudeHome 'memory'
+    if (-not (Test-Path $memoryDir)) {
+        New-Item -ItemType Directory -Path $memoryDir -Force | Out-Null
+    }
+    $entitiesFile = Join-Path $memoryDir 'entities.jsonl'
+    if (-not (Test-Path $entitiesFile)) {
+        '' | Set-Content -Path $entitiesFile -Encoding UTF8
     }
 
+    # Use Python to update settings.json (handles complex JSON merging reliably)
+    $settingsFile = Join-Path $ClaudeHome 'settings.json'
+    if (-not (Test-Path $settingsFile)) {
+        '{}' | Set-Content -Path $settingsFile -Encoding UTF8
+    }
+
+    $pythonScript = @"
+import json, sys
+file = r'$($settingsFile.Replace('\', '\\'))'
+entities = r'$($entitiesFile.Replace('\', '\\'))'
+with open(file, encoding='utf-8') as f:
+    cfg = json.load(f)
+
+# MCP memory server — Windows: cmd /c npx to resolve .cmd batch file
+cfg.setdefault('mcpServers', {})
+if 'memory' not in cfg['mcpServers']:
+    cfg['mcpServers']['memory'] = {
+        'type': 'stdio',
+        'command': 'cmd',
+        'args': ['/c', 'npx', '-y', '@modelcontextprotocol/server-memory'],
+        'env': {'MEMORY_FILE_PATH': entities}
+    }
+
+# Hooks
+if 'hooks' not in cfg:
+    cfg['hooks'] = {
+        'SessionStart': [{'matcher': '', 'hooks': [{'type': 'command',
+            'command': 'cat ~/.claude/projects/$(basename $PWD 2>/dev/null)/state.md 2>/dev/null || true',
+            'timeout': 5000}]}],
+        'UserPromptSubmit': [{'matcher': '', 'hooks': [{'type': 'command',
+            'command': 'python3 ~/.claude/scripts/memory-search.py 2>/dev/null || true',
+            'timeout': 3000}]}],
+        'PreToolUse': [
+            {'matcher': 'Bash', 'hooks': [{'type': 'command',
+                'command': 'python3 ~/.claude/scripts/bash-guard.py',
+                'timeout': 2000}]},
+            {'matcher': 'Write|Edit', 'hooks': [{'type': 'command',
+                'command': 'python3 ~/.claude/scripts/scan-secrets.py',
+                'timeout': 2000}]}
+        ],
+        'Stop': [{'matcher': '', 'hooks': [{'type': 'command',
+            'command': 'python3 ~/.claude/scripts/update-state.py',
+            'timeout': 3000}]}]
+    }
+
+with open(file, 'w', encoding='utf-8') as f:
+    json.dump(cfg, f, indent=2)
+"@
+
+    $tmpPy = Join-Path ([System.IO.Path]::GetTempPath()) 'memory_merge.py'
+    $pythonScript | Set-Content -Path $tmpPy -Encoding UTF8
+
+    $python = Get-Command python3 -ErrorAction SilentlyContinue
+    if (-not $python) { $python = Get-Command python -ErrorAction SilentlyContinue }
+
+    if ($python) {
+        try {
+            & $python.Source $tmpPy
+            Write-Ok 'MCP memory server and hooks configured in settings.json'
+        } catch {
+            Write-Warn "Could not update settings.json: $_"
+        }
+    } else {
+        Write-Warn 'Python not available -- memory/hooks config skipped. Re-run after installing Python.'
+    }
+
+    Remove-Item $tmpPy -ErrorAction SilentlyContinue
     $script:ManifestLayers.Add('memory')
 }
 
@@ -407,6 +651,39 @@ function Install-Layer6-Custom {
     }
 
     $script:ManifestLayers.Add('custom')
+}
+
+# ── Layer 7: Skills ───────────────────────────────────────────────────
+# Copies skills from this repo's skills/ directory into ~/.claude/skills/
+function Install-Layer7-Skills {
+    Write-Header 'Layer 7: Skills'
+
+    $skillsDir = Join-Path $ClaudeHome 'skills'
+    if (-not (Test-Path $skillsDir)) {
+        New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
+    }
+
+    $repoSkills = Join-Path $ScriptDir 'skills'
+    if (Test-Path $repoSkills) {
+        $skillDirs = Get-ChildItem -Path $repoSkills -Directory -ErrorAction SilentlyContinue
+        $count = 0
+        foreach ($sd in $skillDirs) {
+            $dest = Join-Path $skillsDir $sd.Name
+            if (-not (Test-Path $dest)) {
+                New-Item -ItemType Directory -Path $dest -Force | Out-Null
+            }
+            Copy-Item -Path "$($sd.FullName)\*" -Destination $dest -Recurse -Force `
+                -ErrorAction SilentlyContinue
+            Write-Info "Installed skill: $($sd.Name)"
+            $count++
+        }
+        if ($count -gt 0) { Write-Ok "Installed $count skill(s)" }
+    } else {
+        Write-Warn 'No skills/ directory in repo -- skipping'
+    }
+
+    Write-Ok 'Layer 7 complete'
+    $script:ManifestLayers.Add('skills')
 }
 
 # ── Attribution & Licenses ────────────────────────────────────────────
@@ -472,7 +749,7 @@ function Write-Manifest {
 
     $manifest = [PSCustomObject]@{
         installer   = 'claude-setup'
-        version     = '1.0.0'
+        version     = '1.2.0'
         installedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
         os          = 'windows'
         claudeHome  = $ClaudeHome
@@ -548,7 +825,7 @@ function Main {
     Write-Info "Temp directory: $script:TempDir"
 
     try {
-        Test-Prerequisites
+        Install-Dependencies
         Select-Roles
 
         Install-Layer0-ECC
@@ -558,6 +835,7 @@ function Main {
         Install-Layer4-HUD
         Install-Layer5-Memory
         Install-Layer6-Custom
+        Install-Layer7-Skills
         New-Attribution
         Write-Manifest
         Invoke-SmokeTest
