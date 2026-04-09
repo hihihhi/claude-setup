@@ -489,15 +489,12 @@ with open(file, "w", encoding='utf-8') as f:
 }
 
 # ── Layer 5: Memory System ────────────────────────────────────────────
-# Installs hook scripts and configures settings.json with:
-#   - MCP memory server (@modelcontextprotocol/server-memory)
-#   - UserPromptSubmit hook (TF-IDF memory injection)
-#   - PreToolUse hooks (bash-guard, scan-secrets)
-#   - Stop hook (update-state)
-#   - SessionStart hook (inject session state)
+# Installs hook scripts and configures:
+#   ~/.claude.json     — MCP memory server (Claude Code v2+ reads mcpServers here)
+#   ~/.claude/settings.json — hooks (UserPromptSubmit, PreToolUse, Stop, SessionStart)
 #
 # Windows MCP fix: npx is a .cmd batch file on Windows and cannot be spawned
-# directly. All MCP servers use cmd /c npx to route through cmd.exe.
+# directly. MCP server uses cmd /c npx to route through cmd.exe.
 function Install-Layer5-Memory {
     Write-Header 'Layer 5: Memory System & Security Hooks'
 
@@ -530,7 +527,10 @@ function Install-Layer5-Memory {
         '' | Set-Content -Path $entitiesFile -Encoding UTF8
     }
 
-    # Use Python to update settings.json (handles complex JSON merging reliably)
+    # Claude Code v2+ reads mcpServers from ~/.claude.json (not settings.json)
+    $claudeJson = Join-Path $env:USERPROFILE '.claude.json'
+
+    # settings.json — for hooks only (not MCP)
     $settingsFile = Join-Path $ClaudeHome 'settings.json'
     if (-not (Test-Path $settingsFile)) {
         '{}' | Set-Content -Path $settingsFile -Encoding UTF8
@@ -538,26 +538,39 @@ function Install-Layer5-Memory {
 
     $pythonScript = @"
 import json, sys
-file = r'$($settingsFile.Replace('\', '\\'))'
-entities = r'$($entitiesFile.Replace('\', '\\'))'
-with open(file, encoding='utf-8') as f:
-    cfg = json.load(f)
+claude_json_path = r'$($claudeJson.Replace('\', '\\'))'
+settings_path    = r'$($settingsFile.Replace('\', '\\'))'
+entities         = r'$($entitiesFile.Replace('\', '\\'))'
 
-# MCP memory server — Windows: cmd /c npx to resolve .cmd batch file
-cfg.setdefault('mcpServers', {})
-if 'memory' not in cfg['mcpServers']:
-    cfg['mcpServers']['memory'] = {
+# ── MCP memory server → ~/.claude.json ──────────────────────────────
+from pathlib import Path
+cjp = Path(claude_json_path)
+if cjp.exists():
+    cfg_cj = json.loads(cjp.read_text(encoding='utf-8'))
+else:
+    cfg_cj = {}
+
+cfg_cj.setdefault('mcpServers', {})
+if 'memory' not in cfg_cj['mcpServers']:
+    cfg_cj['mcpServers']['memory'] = {
         'type': 'stdio',
         'command': 'cmd',
         'args': ['/c', 'npx', '-y', '@modelcontextprotocol/server-memory'],
         'env': {'MEMORY_FILE_PATH': entities}
     }
+    cjp.write_text(json.dumps(cfg_cj, indent=2), encoding='utf-8')
+    print('MCP memory server added to ~/.claude.json')
+else:
+    print('MCP memory server already in ~/.claude.json')
 
-# Hooks
+# ── Hooks → ~/.claude/settings.json ────────────────────────────────
+with open(settings_path, encoding='utf-8') as f:
+    cfg = json.load(f)
+
 if 'hooks' not in cfg:
     cfg['hooks'] = {
         'SessionStart': [{'matcher': '', 'hooks': [{'type': 'command',
-            'command': 'cat ~/.claude/projects/$(basename $PWD 2>/dev/null)/state.md 2>/dev/null || true',
+            'command': 'cat ~/.claude/projects/`$(basename `$PWD 2>/dev/null)/state.md 2>/dev/null || true',
             'timeout': 5000}]}],
         'UserPromptSubmit': [{'matcher': '', 'hooks': [{'type': 'command',
             'command': 'python3 ~/.claude/scripts/memory-search.py 2>/dev/null || true',
@@ -574,9 +587,11 @@ if 'hooks' not in cfg:
             'command': 'python3 ~/.claude/scripts/update-state.py',
             'timeout': 3000}]}]
     }
-
-with open(file, 'w', encoding='utf-8') as f:
-    json.dump(cfg, f, indent=2)
+    with open(settings_path, 'w', encoding='utf-8') as f:
+        json.dump(cfg, f, indent=2)
+    print('Hooks written to settings.json')
+else:
+    print('Hooks already in settings.json')
 "@
 
     $tmpPy = Join-Path ([System.IO.Path]::GetTempPath()) 'memory_merge.py'

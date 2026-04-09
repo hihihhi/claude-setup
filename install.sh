@@ -585,27 +585,62 @@ install_layer5_memory() {
   local settings_file="$CLAUDE_HOME/settings.json"
   [[ -f "$settings_file" ]] || echo '{}' > "$settings_file"
 
-  # Determine MCP command based on OS
-  # Windows: wrap npx with cmd /c to work around .cmd file spawn limitation
-  local mcp_cmd mcp_prefix
-  if [[ "$OS" == "windows" ]]; then
-    mcp_cmd='"cmd"'
-    mcp_prefix='"\/c", "npx"'
+  # ── MCP memory server ─────────────────────────────────────────────────────
+  # Claude Code v2+ reads mcpServers from ~/.claude.json (NOT settings.json).
+  # Write there via Python to avoid corrupting oauth tokens and other user data.
+  local claude_json
+  if [[ "$OS" == "windows" && -n "${USERPROFILE:-}" ]]; then
+    claude_json="$USERPROFILE/.claude.json"
   else
-    mcp_cmd='"npx"'
-    mcp_prefix='"npx"'
+    claude_json="$HOME/.claude.json"
   fi
+  mkdir -p "$CLAUDE_HOME/memory"
 
-  # Add MCP memory server if not present
-  if grep -q '"memory"' "$settings_file" 2>/dev/null; then
-    info "MCP memory server already in settings.json"
+  if [[ -f "$claude_json" ]] && grep -q '"memory"' "$claude_json" 2>/dev/null; then
+    info "MCP memory server already in ~/.claude.json"
   else
-    info "Adding MCP memory server to settings.json..."
-    _add_mcp_server "$settings_file" "memory" "$mcp_cmd" "$mcp_prefix" \
-      '"-y", "@modelcontextprotocol/server-memory"' \
-      "\"MEMORY_FILE_PATH\": \"$CLAUDE_HOME/memory/entities.jsonl\""
-    mkdir -p "$CLAUDE_HOME/memory"
-    success "MCP memory server configured"
+    info "Adding MCP memory server to ~/.claude.json..."
+    local py; py="$(_python_cmd)"
+    if [[ -n "$py" ]]; then
+      "$py" - <<PYEOF
+import json, os, platform
+from pathlib import Path
+
+claude_json = Path(r"""$claude_json""")
+memory_path = Path(r"""$CLAUDE_HOME""") / "memory" / "entities.jsonl"
+is_windows = (os.name == "nt" or platform.system() == "Windows")
+
+# Load or create .claude.json
+if claude_json.exists():
+    cfg = json.loads(claude_json.read_text(encoding="utf-8"))
+else:
+    cfg = {}
+
+cfg.setdefault("mcpServers", {})
+if "memory" not in cfg["mcpServers"]:
+    if is_windows:
+        cfg["mcpServers"]["memory"] = {
+            "type": "stdio",
+            "command": "cmd",
+            "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-memory"],
+            "env": {"MEMORY_FILE_PATH": str(memory_path)}
+        }
+    else:
+        cfg["mcpServers"]["memory"] = {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-memory"],
+            "env": {"MEMORY_FILE_PATH": str(memory_path)}
+        }
+    claude_json.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    print("MCP memory server added")
+else:
+    print("already present")
+PYEOF
+      success "MCP memory server configured in ~/.claude.json"
+    else
+      warn "Python not found — MCP memory server not configured. Re-run after installing Python."
+    fi
   fi
 
   # Add security + memory hooks to settings.json
