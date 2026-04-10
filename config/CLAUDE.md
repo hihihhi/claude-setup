@@ -5,6 +5,7 @@
 - No summaries of what you just did.
 - No features/refactors/comments beyond what was asked.
 - Prefer editing existing files. No speculative abstractions.
+- **Iterate until complete**: for multi-step tasks, keep working through all steps autonomously — verify each step, fix errors, loop until done. Do not stop mid-task for unnecessary check-ins.
 
 ## Skill Auto-Discovery
 
@@ -23,6 +24,7 @@
 | Python | `modern-python` |
 | Research / trends | `deep-research`, `last30days`, `market-news-analyst`, `karpathy-guidelines` |
 | Quant / trading | `quant-research`, `backtest-expert`, `canslim-screener`, `vcp-screener`, `technical-analyst` |
+| Econophysics / RL | `quant-research`, `deep-research`, `pytorch-patterns`, `backtest-expert` |
 | Deployment | `deploy-to-vercel`, `netlify-cli-and-deploy` |
 | Cloudflare | `wrangler`, `durable-objects`, `workers-best-practices` |
 | Docker / infra | `docker-patterns`, `devcontainer-setup` |
