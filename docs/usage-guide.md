@@ -199,7 +199,47 @@ For large tasks, say: `"run this as a background agent and report back"` — thi
 
 ---
 
-## 10. VS Code / Copilot Integration
+## 10. Quant Research Vault (MCP — quant projects only)
+
+The `quant-research-vault` is a private knowledge base of 16,000+ papers across quant finance,
+econophysics, ML-for-finance, and RL-for-trading. It is wired as a project-scoped MCP in
+`fundratio-arb` and `igsl` — it does **not** load in other projects, so there's zero token cost
+outside those two.
+
+**Available inside quant projects:**
+```
+search_papers("momentum factor crypto")       # semantic search over 16k papers
+list_recent_papers(7)                          # new papers from last 7 days
+get_paper("2401.12345")                        # full analysis for a specific arXiv paper
+generate_alpha_ideas("pairs trading")          # Claude-generated alpha ideas from vault context
+get_vault_stats()                              # paper count, date range, index size
+```
+
+**CLI alternative (zero MCP overhead, works anywhere):**
+```bash
+cd ~/Desktop/quant-research-vault
+python research.py "volatility forecasting"               # semantic search
+python research.py --snapshot "crypto funding rate RL"    # topic synthesis doc
+python research.py --alpha-ideas "crypto momentum"        # alpha idea generation
+python research.py --daily                                # today's new papers
+python research.py --top-crypto 10                        # top papers by crypto score
+```
+
+**To keep the vault fresh (run periodically):**
+```bash
+python run.py --all-history --abstract-only   # fast index update (~2 hrs for 18k papers)
+python research.py --distill                   # re-synthesize 14 methodology topic docs
+```
+
+**Where the distilled brain lives:** `~/Documents/ClaudeVault/guidelines/quant-methodology-distilled.md`
+— inject this into context when you need broad quant strategy coverage without searching.
+
+> **Note:** The ChromaDB index needs populating before MCP search works. Run
+> `python sync.py` in the vault directory if searches return no results.
+
+---
+
+## 11. VS Code / Copilot Integration
 
 If you use VS Code with the Copilot extension alongside Claude Code:
 
