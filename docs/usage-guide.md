@@ -199,12 +199,11 @@ For large tasks, say: `"run this as a background agent and report back"` — thi
 
 ---
 
-## 10. Quant Research Vault (MCP — quant projects only)
+## 10. Quant Research Vault (Global MCP)
 
-The `quant-research-vault` is a private knowledge base of 16,000+ papers across quant finance,
-econophysics, ML-for-finance, and RL-for-trading. It is wired as a project-scoped MCP in
-`fundratio-arb` and `igsl` — it does **not** load in other projects, so there's zero token cost
-outside those two.
+The `quant-research-vault` is a private knowledge base of 18,000+ papers across quant finance,
+econophysics, ML-for-finance, and RL-for-trading. It is registered globally in `~/.claude.json`
+and available in every Claude Code session.
 
 **Available inside quant projects:**
 ```
