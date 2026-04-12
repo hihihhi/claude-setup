@@ -53,22 +53,34 @@ Running `./install.sh` (or `./install.ps1` on Windows) sets up your `~/.claude/`
 
 ## Quick Start
 
+### Recommended: Let Claude do it
+
 ```bash
+# 1. Clone
 git clone https://github.com/hihihhi/claude-setup.git
 cd claude-setup
+
+# 2. Open Claude Code in this directory
+claude
+
+# 3. Type:
+/setup
+```
+
+Claude reads [`setup/SKILL.md`](./setup/SKILL.md) and bootstraps the entire environment —
+detecting your OS, asking your role, creating config files, installing skills, and verifying.
+This approach handles conflicts intelligently and adapts to your machine. No shell syntax bugs.
+
+### Fallback: Shell script (headless / CI)
+
+```bash
 ./install.sh        # Mac/Linux/Git Bash
 # or
 ./install.ps1       # Windows PowerShell
 ```
 
-The installer will:
-1. Detect your OS
-2. Prompt you to select role(s)
-3. Install each layer in order
-4. Generate attribution and manifest
-5. Run a smoke test
-
-**After installing:** read [`docs/usage-guide.md`](./docs/usage-guide.md) — it covers what to say to trigger each skill, how to activate role overlays, how memory injection works, and the quick-reference card for daily use.
+**After installing:** read [`docs/usage-guide.md`](./docs/usage-guide.md) — covers skill triggers,
+role overlays, memory injection, and the daily quick-reference card.
 
 ## Role Selection
 
@@ -172,13 +184,15 @@ All scripts use Python stdlib only (no external dependencies).
 
 ```
 claude-setup/
-  install.sh              Bash installer (Mac/Linux/Git Bash)
-  install.ps1             PowerShell installer (Windows)
+  setup/
+    SKILL.md              /setup bootstrap skill — primary installer
+  install.sh              Fallback bash installer (Mac/Linux/Git Bash)
+  install.ps1             Fallback PowerShell installer (Windows)
   README.md
   LICENSE                 MIT
   ATTRIBUTION.md          All bundled components with licenses
   config/
-    CLAUDE.md             Global navigation index (103 lines)
+    CLAUDE.md             Global navigation index
     roles/
       developer.md        Dev role overlay
       researcher.md       Research role overlay
@@ -186,6 +200,11 @@ claude-setup/
       product.md          PM role overlay
       devops.md           DevOps/SRE overlay
       data-scientist.md   ML/DS overlay
+  skills/
+    frontend-design/      Anti-AI-slop design system (OKLCH, typography, style directions)
+    deep-research/        Research pipeline skill
+    quant-research/       Quant/trading research skill
+    karpathy-guidelines/  Karpathy engineering principles
   scripts/
     memory-search.py      Dynamic memory injection
     bash-guard.py         Dangerous command blocker
