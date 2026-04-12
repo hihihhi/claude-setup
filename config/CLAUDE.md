@@ -17,7 +17,7 @@
 | PostgreSQL / DB | `supabase-postgres-best-practices`, `neon-postgres` |
 | Auth | `better-auth-best-practices` |
 | Stripe | `stripe-best-practices` |
-| CSS / UI work | `shadcn-ui`, impeccable suite (`critique`, `arrange`, `colorize`, `typeset`, `polish`) |
+| CSS / UI work | `frontend-design` skill (OKLCH color, anti-AI-slop, style directions); impeccable suite (`critique`, `colorize`, `typeset`, `polish`); `shadcn-ui` |
 | Security audit | `insecure-defaults`, `security-review` |
 | Git / PR | `commit`, `create-pr`, `code-review` |
 | Testing | `webapp-testing`, `tdd` |
