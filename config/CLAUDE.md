@@ -9,10 +9,11 @@
 
 ## When to Ask (Before Acting)
 - **Ambiguous request** (2+ valid interpretations) → state both, ask which one. Never silently pick one.
-- **Missing critical context** (which file? which function? what exact behavior?) → ask the single most important question. One question, not a list.
-- **Scope unclear** (touches 1 file vs entire system) → state exactly what you'll change and confirm before starting.
+- **Missing context (simple)** → ask the single most blocking question. Don't interrogate.
+- **Missing context (complex, ≥3 gaps)** → use `/clarify`: list ALL gaps numbered, let user fill each. Never silently assume on multi-part requests.
+- **Scope unclear** → state exactly what you'll change and confirm before starting.
 - **Destructive or irreversible** (delete, drop, overwrite, push) → always confirm first.
-- Once clarified, proceed without re-asking the same thing.
+- **Key rule**: never rewrite what the user meant — ask if unclear. Silently filling gaps = silent deviation.
 
 ## Skill Auto-Discovery
 
