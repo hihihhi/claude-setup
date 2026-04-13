@@ -7,6 +7,13 @@
 - Prefer editing existing files. No speculative abstractions.
 - **Iterate until complete**: for multi-step tasks, keep working through all steps autonomously — verify each step, fix errors, loop until done. Do not stop mid-task for unnecessary check-ins.
 
+## When to Ask (Before Acting)
+- **Ambiguous request** (2+ valid interpretations) → state both, ask which one. Never silently pick one.
+- **Missing critical context** (which file? which function? what exact behavior?) → ask the single most important question. One question, not a list.
+- **Scope unclear** (touches 1 file vs entire system) → state exactly what you'll change and confirm before starting.
+- **Destructive or irreversible** (delete, drop, overwrite, push) → always confirm first.
+- Once clarified, proceed without re-asking the same thing.
+
 ## Skill Auto-Discovery
 
 | Context | Skills |
@@ -17,7 +24,7 @@
 | PostgreSQL / DB | `supabase-postgres-best-practices`, `neon-postgres` |
 | Auth | `better-auth-best-practices` |
 | Stripe | `stripe-best-practices` |
-| CSS / UI work | `frontend-design` skill (OKLCH color, anti-AI-slop, style directions); impeccable suite (`critique`, `colorize`, `typeset`, `polish`); `shadcn-ui` |
+| CSS / UI work | `frontend-design` skill (OKLCH color, anti-AI-slop, style directions); impeccable (`critique`, `colorize`, `typeset`, `polish`); `shadcn-ui` |
 | Security audit | `insecure-defaults`, `security-review` |
 | Git / PR | `commit`, `create-pr`, `code-review` |
 | Testing | `webapp-testing`, `tdd` |
@@ -31,40 +38,26 @@
 | ML / AI | `pytorch-patterns`, `fal-ai-media`, `cost-aware-llm-pipeline` |
 | Docs | `docx`, `pdf`, `pptx`, `xlsx` |
 
-## When to Ask (Before Acting)
-- **Ambiguous request** (2+ valid interpretations) → state both, ask which one. Never silently pick one.
-- **Missing critical context** (which file? which function? what exact behavior?) → ask the single most important question. One question, not a list.
-- **Scope unclear** (touches 1 file vs entire system) → state exactly what you'll change and confirm before starting.
-- **Destructive or irreversible** (delete, drop, overwrite, push) → always confirm first.
-- Once clarified, proceed without re-asking the same thing.
-
 ## Memory System
-Three-tier: global preferences -> project-specific context -> cross-project knowledge.
+Three-tier: global -> project -> knowledge graph.
 
 - **Tier 1 (Always)**: This file + `~/.claude/rules/*.md`
-- **Tier 2 Global (Default save)**: `~/.claude/projects/C--Users-heiwa/memory/` — **preferences, feedback, workflow rules; save here by default**
-- **Tier 2 Project**: `~/.claude/projects/<proj>/memory/` — only for info tied to ONE specific project
-- **Tier 3 (Deep knowledge)**: MCP memory server — domain knowledge, research vault, cross-project entities
+- **Tier 2 (Global default)**: `~/.claude/projects/C--Users-heiwa/memory/` — **save here by default**
+  - Stores: preferences, feedback, workflow rules, coding standards, anything that applies across projects
+- **Tier 2 (Project-specific)**: `~/.claude/projects/<proj>/memory/` — only for info tied to ONE project
+  - Stores: project-specific bugs, one-off deadlines, repo-specific decisions
+- **Tier 3 (Cross-project knowledge)**: MCP memory server (`knowledge-graph.json`)
+  - Stores: deep domain knowledge, quant research vault, entities/relationships that span projects
+  - Use for: the quant-research-vault papers, cross-project architectural patterns, domain expertise
 
-**Tier 2 Global** (default — applies everywhere):
-- User preferences and feedback corrections
-- Workflow rules ("always use agent teams", "loop until criterion met")
-- Coding standards that apply across all projects
-- Anything you'd want to remember regardless of which repo you're in
+**Default save location: `~/.claude/projects/C--Users-heiwa/memory/`**
+Only use project-specific memory when the info ONLY makes sense for that one project.
+Preferences, feedback, workflow rules, coding standards → always global (Tier 2 global).
+Domain knowledge, research, cross-project entities → Tier 3 (MCP knowledge graph).
 
-**Tier 2 Project** (only when truly project-specific):
-- A bug unique to that codebase
-- A one-off deadline or stakeholder constraint
-- A repo-specific architectural decision
-
-**Tier 3 — Deep knowledge** (MCP knowledge graph):
-- Domain knowledge (quant research vault, papers, strategies)
-- Cross-project entities: technologies, patterns seen across multiple repos
-- Relationships: "Project A uses same auth pattern as Project B"
-
-**Never save**: code patterns derivable from reading the repo, git history, debugging recipes.
-
-**Recall**: Tier 2 is automatic. Tier 3: `search_nodes("topic")` or `read_graph()`.
+**Save**: user prefs, feedback, project context, references. Full protocol: `rules/memory-protocol.md`.
+**Never save**: code/git derivable facts, current task progress, debugging recipes.
+**Recall**: when relevant to current task or user asks. Tier 3: `search_nodes("topic")` or `read_graph()`.
 
 ## Multi-Agent Workflow
 
@@ -94,6 +87,7 @@ Three-tier: global preferences -> project-specific context -> cross-project know
 | "plan" | `/plan` |
 | "checkpoint" / "save state" | `/checkpoint` |
 | "resume" / "where were we" | `/resume-session` |
+| "improve harness" / "review skills" / "what's not working" | `/self-evolve` |
 
 ## Role Overlays
 Activate with: `load role <name>` or auto-detected from project context.
@@ -102,10 +96,11 @@ Roles add phase routing, priority skills, and preferred agents. See `config/role
 
 ## Context Budget
 - This file: < 200 lines, < 5K tokens.
-- Skills load on demand via routing table.
-- Rules load always (keep minimal).
-- Compact before switching tasks.
-- Sub-agents as context firewalls.
+- Always-loaded total (CLAUDE.md + rules/ + MEMORY.md index): < 5K tokens.
+- Skills load on demand via routing table. Rules load always — keep `rules/` minimal.
+- Sub-agents as context firewalls for long tasks.
+- **Compact at task boundaries** (not mid-task). See `rules/harness-principles.md` for 4-lever strategy.
+- Hook exit codes: `0` = allow, `1` = block+error (PreToolUse only), `2` = inject+continue.
 
 ## Security (hard rules)
 - Never hardcode secrets, tokens, API keys -- use env vars.
@@ -128,3 +123,6 @@ Roles add phase routing, priority skills, and preferred agents. See `config/role
 - `npm` over `pnpm` for Windows-native dirs (symlink issues).
 - Next.js builds: use WSL2 `npm` to avoid EINVAL readlink.
 - Hooks run in bash -- use Unix paths always.
+# graphify
+- **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
+When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.

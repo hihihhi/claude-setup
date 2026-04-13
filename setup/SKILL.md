@@ -143,6 +143,16 @@ For each selected role, copy the matching file:
 
 ---
 
+## Phase 3d — Install Rules
+
+Copy all rule files from `rules/` in this repo to `$CLAUDE_HOME/rules/`.
+
+Rules load on EVERY session (always-loaded context). Never skip this step.
+- `rules/harness-principles.md` → `$CLAUDE_HOME/rules/harness-principles.md`
+- `rules/memory-protocol.md` → `$CLAUDE_HOME/rules/memory-protocol.md`
+
+---
+
 ## Phase 4 — Install Skills
 
 Copy all skill directories from `skills/` in this repo to `$CLAUDE_HOME/skills/`.
@@ -157,6 +167,7 @@ Skills to install:
 - `skills/deep-research/` — research pipeline
 - `skills/quant-research/` — quant/trading research
 - `skills/karpathy-guidelines/` — Karpathy's engineering principles
+- `skills/self-evolve/` — self-improvement loop (session logging + skill review)
 
 ---
 
