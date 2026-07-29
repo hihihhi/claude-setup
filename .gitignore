@@ -1,2 +1,44 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+credentials/
+*credentials*.json
+*.pem
+*.key
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# JavaScript and generated outputs
+node_modules/
+build/
+dist/
+coverage/
+
+# Local runtime state and data
+.claude/
+.state/
+data/
+logs/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+*.parquet
+
+# Archives and operating-system files
+*.zip
+*.7z
+*.tar
+*.tar.gz
+.DS_Store
+Thumbs.db
