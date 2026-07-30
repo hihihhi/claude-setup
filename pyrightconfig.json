@@ -1,0 +1,6 @@
+{
+  "include": ["scripts", "docs/generate_report.py"],
+  "exclude": [".git", ".venv", "venv"],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "standard"
+}

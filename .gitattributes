@@ -1,0 +1,4 @@
+# Keep executable scripts portable across Git Bash, Linux, and macOS.
+*.sh text eol=lf
+*.py text eol=lf
+*.ps1 text eol=crlf

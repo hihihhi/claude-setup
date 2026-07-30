@@ -1,0 +1,42 @@
+name: Repository integrity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run deterministic repository checks
+        run: python -m unittest discover -s tests -v
+      - name: Type-check Python scripts
+        run: |
+          python -m pip install pyright==1.1.409
+          python -m pyright
+      - name: Validate Bash syntax
+        run: |
+          bash -n install.sh
+          bash -n scripts/health-check.sh
+          bash -n scripts/sync-shared-memory.sh
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $env:GITHUB_WORKSPACE 'install.ps1'),
+            [ref] $tokens,
+            [ref] $errors
+          ) | Out-Null
+          if ($errors.Count) {
+            $errors | ForEach-Object Message
+            exit 1
+          }
