@@ -1,10 +1,10 @@
-﻿# Claude Code Workspace Harness
+# Claude Code Workspace Harness
 
-A portable configuration and installer harness for Anthropic's Claude Code that assembles role overlays, team templates, local hooks, and persistent-memory utilities. No headline performance result; the deliverable is the harness.
+Configuring a consistent Claude Code workspace across roles and machines requires repeatable installation, layered instructions, and local safeguards.
 
 ## Status & honesty
 
-Active configuration repository. The installers target `~/.claude` (or `%USERPROFILE%\.claude`) and may download upstream packages and modify that profile; they were not executed during repository verification. Measured repository checks are three deterministic integrity tests, Bash syntax validation for three shell scripts, PowerShell parsing for `install.ps1`, and Pyright standard-mode checking of the Python hook scripts and `docs/generate_report.py`; they do not measure model quality, latency, reliability, or security effectiveness.
+Active configuration repository. No headline performance result; the deliverable is the harness. The installers target `~/.claude` (or `%USERPROFILE%\.claude`) and may download upstream packages and modify that profile; they were not executed during repository verification. Measured repository checks are three deterministic integrity tests, Bash syntax validation for three shell scripts, PowerShell parsing for `install.ps1`, and Pyright standard-mode checking of the Python hook scripts and `docs/generate_report.py`; they do not measure model quality, latency, reliability, or security effectiveness.
 
 ## Architecture
 
@@ -29,6 +29,7 @@ Clone and run the non-destructive repository checks:
 ```bash
 git clone https://github.com/hihihhi/claude-setup.git
 cd claude-setup
+python -m pip install pyright==1.1.409
 python -m unittest discover -s tests -v
 python -m pyright
 bash -n install.sh
