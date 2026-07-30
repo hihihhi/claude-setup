@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 credentials/
+secrets/
 *credentials*.json
 *.pem
 *.key
@@ -28,6 +29,7 @@ coverage/
 .claude/
 .state/
 data/
+private/
 logs/
 *.log
 *.sqlite
@@ -40,5 +42,6 @@ logs/
 *.7z
 *.tar
 *.tar.gz
+*.bin
 .DS_Store
 Thumbs.db
